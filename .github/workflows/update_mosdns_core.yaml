@@ -54,12 +54,13 @@ jobs:
         rm -fr ./opt
     - name: Update
       run: |
+        download_version=$(curl -sL https://api.github.com/repos/IrineSistiana/mosdns/releases/latest | grep '"tag_name": ' | sed -E 's/.*"([^"]+)".*/\1/' | head -n 1)
         rm -fr ./bin/mosdns/*
         cp ./tmp/* ./bin/mosdns/
         rm -fr ./tmp
         cd \bin
         sed -i '/mosdns_v*/'d version
-        echo mosdns_v='${{download_version}}' >> version
+        echo mosdns_v='${download_version}' >> version
     - name: Commit and push
       run: |
         git config --global user.email "gdfsnhsw@gmail.com" && git config --global user.name "Bot"
