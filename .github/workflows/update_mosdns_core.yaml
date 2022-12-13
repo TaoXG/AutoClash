@@ -57,7 +57,8 @@ jobs:
         rm -fr ./bin/mosdns/*
         cp ./tmp/* ./bin/mosdns/
         rm -fr ./tmp
-        sed -i  s/'mosdns_v=.*'/'mosdns_v=${download_version}'/g bin/version
+        sed -i '/mosdns_v*/'d version
+        echo mosdns `${download_version}` >> version
     - name: Commit and push
       run: |
         git config --global user.email "gdfsnhsw@gmail.com" && git config --global user.name "Bot"
