@@ -54,7 +54,6 @@ jobs:
         rm -fr ./opt
     - name: Update
       run: |
-        download_version=$(curl -sL https://api.github.com/repos/IrineSistiana/mosdns/releases/latest | grep '"tag_name": ' | sed -E 's/.*"([^"]+)".*/\1/' | head -n 1)
         rm -fr ./bin/mosdns/*
         cp ./tmp/* ./bin/mosdns/
         rm -fr ./tmp
