@@ -3,5 +3,5 @@ clashpre_v=2022.11.25
 clash_v=v1.7.1
 meta_v=v1.13.2
 versionsh=1.6.13
-mosdns_v=${download_version}
 GeoIP_v=20221213
+mosdns
