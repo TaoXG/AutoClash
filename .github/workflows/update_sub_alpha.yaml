@@ -18,7 +18,7 @@ jobs:
       uses: actions/checkout@main
     - name: Download Core
       run: |
-        download_version=Alpha
+        download_version=$(curl -sL https://api.github.com/repos/MetaCubeX/subconverter/releases/latest | grep '"tag_name": ' | sed -E 's/.*"([^"]+)".*/\1/' | head -n 1)
         echo "download_version=${download_version}" >> ${GITHUB_ENV}
         archs=(linux64 armv7 aarch64)
         new_name=(amd64 armv7 arm64)
@@ -32,6 +32,9 @@ jobs:
         rm -fr ./bin/subconverter_alpha/*
         cp ./tmp/* ./bin/subconverter_alpha/
         rm -fr ./tmp
+        cd \bin
+        sed -i '/subconverter_v*/'d version
+        echo subconverter_v=${download_version} >> version
     - name: Commit and push
       run: |
         git config --global user.email "gdfsnhsw@gmail.com" && git config --global user.name "Bot"
