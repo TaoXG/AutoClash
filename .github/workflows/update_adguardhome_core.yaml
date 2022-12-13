@@ -56,6 +56,9 @@ jobs:
         rm -fr ./bin/adguardhome/*
         cp ./tmp/* ./bin/adguardhome/
         rm -fr ./tmp
+        cd \bin
+        sed -i '/adguardhome_v*/'d version
+        echo adguardhome_v=${download_version} >> version
     - name: Commit and push
       run: |
         git config --global user.email "gdfsnhsw@gmail.com" && git config --global user.name "Bot"
