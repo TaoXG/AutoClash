@@ -25,7 +25,7 @@ jobs:
         mkdir tmp
         for((i=0;i<3;i++));do
           wget -P ./tmp "${download_url}/${download_version}/subconverter_${archs[i]}.tar.gz"
-          mv ./tmp/subconverter_${archs[i]}.tar.gz ./tmp/subconverter-linux-${new_name[i].tar.gz}
+          mv ./tmp/subconverter_${archs[i]}.tar.gz ./tmp/subconverter-linux-${new_name[i]}.tar.gz
         done
     - name: Update
       run: |
