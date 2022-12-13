@@ -39,13 +39,13 @@ jobs:
         for((i=0;i<3;i++));do
           wget -P ./opt "${download_url}/${download_version}/AdGuardHome_linux_${archs[i]}.tar.gz"
           tar -zxvf ./opt/AdGuardHome_linux_${archs[i]}.tar.gz -C ./opt  >> /dev/null 2>&1
-          mv ./opt/AdGuardHome/AdGuardHome ./tmp/AdGuardHome_linux_${new_name[i]}
+          mv ./opt/AdGuardHome/AdGuardHome ./tmp/AdGuardHome-linux-${new_name[i]}
           chmod +x ./tmp/AdGuardHome_linux_${new_name[i]}
           if [ "${archs[i]}" != "armv5" ];then
             if [[ ${archs[i]} = mips* ]];then
-              ./upx-3.93-amd64_linux/upx ./tmp/AdGuardHome_linux_${new_name[i]}
+              ./upx-3.93-amd64_linux/upx ./tmp/AdGuardHome-linux-${new_name[i]}
             else
-              ./upx-3.96-amd64_linux/upx ./tmp/AdGuardHome_linux_${new_name[i]}
+              ./upx-3.96-amd64_linux/upx ./tmp/AdGuardHome-linux-${new_name[i]}
             fi
           fi
         done
