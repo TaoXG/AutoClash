@@ -2,6 +2,6 @@ version=2.0.0
 clashpre_v=2022.11.25
 clashmeta_v=v1.13.2
 mosdns_v=v4.5.3
-subconverter_v=alpha
 adguardhome_v=v0.107.20
 GeoIP_v=20221213
+subconverter_v=Alpha
