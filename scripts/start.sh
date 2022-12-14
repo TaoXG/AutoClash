@@ -27,6 +27,7 @@ getconfig(){
   [ -z "$ipv6_support" ] && ipv6_support=未开启
   [ -z "$ipv6_dns" ] && ipv6_dns=未开启
   [ -z "$raw_cdn" ] && raw_cdn=已开启
+  [ -z "$auto_download" ] && auto_download=已开启
 }
 
 logger(){

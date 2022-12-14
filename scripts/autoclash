@@ -209,49 +209,6 @@ WantedBy=multi-user.target
 EOF
 }
 
-
-set_clashpre_service() {
-    cat << EOF > /etc/systemd/system/clash.service
-[Unit]
-Description=clash daemon
-
-[Service]
-Type=simple
-User=root
-ExecStart=${clashpre_bin} -d ${clashdir}/
-Restart=on-failure
-ExecStartPost=${sps_dir}/start.sh afstart
-
-[Install]
-WantedBy=multi-user.target
-EOF
-    systemctl daemon-reload >> /tmp/autoclash_setup.log 2>&1
-}
-
-set_clashmeta_service() {
-    cat << EOF > /etc/systemd/system/clash.service
-[Unit]
-Description=Clash-Meta Daemon, Another Clash Kernel.
-After=network.target NetworkManager.service systemd-networkd.service iwd.service
-
-[Service]
-Type=simple
-User=root
-LimitNPROC=500
-LimitNOFILE=1000000
-CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW CAP_NET_BIND_SERVICE
-AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW CAP_NET_BIND_SERVICE
-Restart=always
-ExecStartPre=/usr/bin/sleep 1s
-ExecStart=${clashmeta_bin} -d ${bindir}
-ExecStartPost=${sps_dir}/start.sh afstart
-
-[Install]
-WantedBy=multi-user.target
-EOF
-    systemctl daemon-reload >> /tmp/autoclash_setup.log 2>&1
-}
-
 set_mosdns_service() {
     cat << EOF > /etc/systemd/system/mosdns.service
 [Unit]
@@ -401,7 +358,7 @@ echo 'DNSStubListener=no'>>/etc/systemd/resolved.conf
 getcpucore(){
     cputype=$(uname -ms | tr ' ' '_' | tr '[A-Z]' '[a-z]')
     [ -n "$(echo $cputype | grep -E "linux.*armv7.*")" ] && [ -n "$(cat /proc/cpuinfo | grep vfp)" ] && cpucore="linux-armv7"
-    [ -n "$(echo $cputype | grep -E "linux.*aarch64.*|linux.*armv8.*")" ] && cpucore="linux-armv8"
+    [ -n "$(echo $cputype | grep -E "linux.*aarch64.*|linux.*armv8.*")" ] && cpucore="linux-arm64"
     [ -n "$(echo $cputype | grep -E "linux.*86_64.*")" ] && cpucore="linux-amd64"
 }
 
@@ -461,10 +418,8 @@ EOF
 }
 
 install_clash() {
-    source $ccfg
     # Clash Premium core
     clash_premium_url="https://api.github.com/repos/Dreamacro/clash/releases/tags/premium"
-
     if [ ! -d "/tmp/clash" ]; then
       mkdir /tmp/clash
     fi
@@ -480,41 +435,46 @@ install_clash() {
         exit 1
     fi
 
-    clash_premium_download_url=$(jq ".assets[${i}].browser_download_url" /tmp/clash/clash_premium_release.json | tr -d '"' | grep -m1 ${cpucore})
-    if [ "${clash_premium_download_url}" == "" ]; then
-        echo -e "${red}No compatible Clash Premium for your platform.${end}"
-        exit 1
-    fi
-
-    echo -e "${green}Start download Clash Premium from ${clash_premium_download_url}${end}" 
-    webget2 /tmp/clash/clash.gz ${url_cdn}${clash_premium_download_url}
-    if [ ! -f "/tmp/clash/clash.gz" ]; then
-        echo -e "${red}Failed to download Clash Premium.${end}"
-        exit 1
+    if [ "$auto_download" = "AutoClash库" ];then
+      clash_premium_download_url="http://git.168828.xyz/root/AutoClash/raw/branch/main/bin/clash_pre/clash-${cpucore}"
+      echo -e "${green}Start download Clash Premium from ${clash_premium_download_url}${end}" 
+      webget2 /tmp/clash/clash ${url_cdn}${clash_premium_download_url}
+    else
+      clash_premium_download_url=$(jq ".assets[${i}].browser_download_url" /tmp/clash/clash_premium_release.json | tr -d '"' | grep -m1 ${cpucore})
+      if [ "${clash_premium_download_url}" == "" ]; then
+          echo -e "${red}No compatible Clash Premium for your platform.${end}"
+          exit 1
+      fi
+      echo -e "${green}Start download Clash Premium from ${clash_premium_download_url}${end}" 
+      webget2 /tmp/clash/clash.gz ${url_cdn}${clash_premium_download_url}
+      if [ ! -f "/tmp/clash/clash.gz" ]; then 
+          echo -e "${red}Failed to download Clash Premium.${end}"
+          exit 1
+      fi
+      cd ~
+      gunzip /tmp/clash/clash.gz
     fi
 
     remote_clashpre_version=$(jq '.name' /tmp/clash/clash_premium_release.json | tr -d '"' | awk '{print $2}')
     echo "clashpre_v ${remote_clashpre_version}" >> ${auto_dir}/version
 
     rm -rf ${clashpre_bin}
-    cd ~
-    gunzip /tmp/clash/clash.gz
     mv /tmp/clash/clash ${clashpre_bin}
     chmod +x ${clashpre_bin}
     setcap cap_net_bind_service=+ep ${clashpre_bin}
+    cp -r ${clashpre_bin} ${bindir}/clash
+    rm -rf /tmp/clash
 
     download_clash_dashboard
     download_clash_yacd
     download_clash_Country
 
-    cp -r ${clashpre_bin} ${bindir}/clash
     set_clash_service
     systemctl daemon-reload >> /tmp/autoclash_setup.log 2>&1
     systemctl start clash.service >> /tmp/autoclash_setup.log 2>&1
     systemctl enable clash >> /tmp/autoclash_setup.log 2>&1
 
-    rm -rf /tmp/clash
-    echo -e "${yellow}Clash successfully installed${end}"
+    echo -e "${yellow}Clash Premium successfully installed${end}"
 }
 
 download_clash_dashboard () {
@@ -522,57 +482,64 @@ download_clash_dashboard () {
     if [ ! -d "${clashdir}/ui" ]; then
       mkdir ${clashdir}/ui
     fi 
-    clash_dashboard_download_url="https://github.com/Dreamacro/clash-dashboard/archive/gh-pages.zip"
+
+    if [ "$auto_download" = "AutoClash库" ];then
+      clash_dashboard_download_url="http://git.168828.xyz/root/AutoClash/raw/branch/main/bin/dashboard.zip"
+    else
+      clash_dashboard_download_url="https://github.com/Dreamacro/clash-dashboard/archive/gh-pages.zip"
+    fi
     echo -e "${green}Start download Clash Dashboard from ${clash_dashboard_download_url}${end}" 
     webget2  /tmp/dashboard.zip  ${url_cdn}${clash_dashboard_download_url}
-    if [ -f "/tmp/dashboard.zip" ]; then
-      cd /tmp
-      unzip dashboard.zip >> /dev/null 2>&1
-      [ -d "${clashdir}/ui/dashboard" ] && rm -rf "${clashdir}/ui/dashboard"
-      mv -f -T /tmp/clash-dashboard-gh-pages ${clashdir}/ui/dashboard
-      rm -rf /tmp/dashboard.zip
-    else
+    if [ ! -f "/tmp/dashboard.zip" ]; then
       echo -e "${red}Failed to download Clash Dashboard.${end}"
       exit 1
     fi
+    cd /tmp
+    unzip dashboard.zip >> /dev/null 2>&1
+    [ -d "${clashdir}/ui/dashboard" ] && rm -rf "${clashdir}/ui/dashboard"
+    mv -f -T /tmp/clash-dashboard-gh-pages ${clashdir}/ui/dashboard
+    rm -rf /tmp/dashboard.zip
 }
 
 download_clash_yacd () {
-    source $ccfg
     if [ ! -d "${clashdir}/ui" ]; then
       mkdir ${clashdir}/ui
     fi 
-    clash_yacd_download_url="https://github.com/haishanh/yacd/archive/gh-pages.zip"
+    if [ "$auto_download" = "AutoClash库" ];then
+      clash_yacd_download_url="http://git.168828.xyz/root/AutoClash/raw/branch/main/bin/yacd.zip"
+    else
+      clash_yacd_download_url="https://github.com/haishanh/yacd/archive/gh-pages.zip"
+    fi
     echo -e "${green}Start download Clash Yacd from ${clash_yacd_download_url}${end}" 
     webget2  /tmp/yacd.zip  ${url_cdn}${clash_yacd_download_url}
-    if [ -f "/tmp/yacd.zip" ]; then
-      cd /tmp
-      unzip yacd.zip >> /dev/null 2>&1
-      [ -d "${clashdir}/ui/yacd" ] && rm -rf "${clashdir}/ui/yacd"
-      mv -f -T /tmp/yacd-gh-pages ${clashdir}/ui/yacd
-      rm -rf /tmp/yacd.zip
-    else
+    if [ ! -f "/tmp/yacd.zip" ]; then
       echo -e "${red}Failed to download Clash Yacd.${end}"
       exit 1
     fi
+    cd /tmp
+    unzip yacd.zip >> /dev/null 2>&1
+    [ -d "${clashdir}/ui/yacd" ] && rm -rf "${clashdir}/ui/yacd"
+    mv -f -T /tmp/yacd-gh-pages ${clashdir}/ui/yacd
+    rm -rf /tmp/yacd.zip
 }
 
 download_clash_Country () {
-    source $ccfg
-    clash_Country_download_url="https://raw.githubusercontent.com/alecthw/mmdb_china_ip_list/release/Country.mmdb"
+    if [ "$auto_download" = "AutoClash库" ];then
+      clash_Country_download_url="http://git.168828.xyz/root/AutoClash/raw/branch/main/bin/cn_mini.mmdb"
+    else
+      clash_Country_download_url="https://raw.githubusercontent.com/alecthw/mmdb_china_ip_list/release/Country.mmdb"
+    fi
     echo -e "${green}Start download Clash Country.mmdb from ${clash_Country_download_url}${end}" 
     webget2 /tmp/Country.mmdb ${url_cdn}${clash_Country_download_url}
-    if [ -f "/tmp/Country.mmdb" ]; then
-      [ -f "${clashdir}/Country.mmdb" ] && rm -rf "${clashdir}/Country.mmdb"
-      mv /tmp/Country.mmdb ${clashdir}/Country.mmdb
-    else
+    if [ ! -f "/tmp/Country.mmdb" ]; then
       echo -e "${red}Failed to download Country.mmdb.${end}"
       exit 1
     fi
+    [ -f "${clashdir}/Country.mmdb" ] && rm -rf "${clashdir}/Country.mmdb"
+    mv /tmp/Country.mmdb ${clashdir}/Country.mmdb
 }
 
 update_clash_y() {
-    source $ccfg
     getcpucore
     if [ ! -f "${clashpre_bin}" ]; then
       echo "1970.01.01" > ${clashpre_version_file}
@@ -618,23 +585,30 @@ update_clash_y() {
       fi
       i=$(( i+1 ))
     done < /tmp/clash_premium_release_assets
-
     rm /tmp/clash_premium_release_assets
-    remote_clash_download_url=$(jq ".assets[${i}].browser_download_url" /tmp/clash_premium_release.json | tr -d '"')
-    rm /tmp/clash_premium_release.json 
-
-    echo "Start downloading Clash Premium ${remote_clashpre_version} from ${remote_clash_download_url}..."
-    [ -f "${autobin_dir}/clash.gz" ] && rm "${autobin_dir}/clash.gz"
-    webget2 ${autobin_dir}/clash.gz ${url_cdn}${remote_clash_download_url}
-    if [ ! -f "${autobin_dir}/clash.gz" ]; then
-      echo -e "${red}Failed to download Clash Premium.${end}"
-      echo -e "${red}Please download and upload it to ${autobin_dir} manually.${end}"
-      exit 1
-    fi
 
     [ -f ${autobin_dir}/clash.old ] && rm ${autobin_dir}/clash.old
     [ -f ${clashpre_bin} ] && mv ${clashpre_bin} ${autobin_dir}/clash.old
-    gzip -d "${autobin_dir}/clash.gz" && chmod +x ${clashpre_bin} && ${clashpre_bin} -v
+
+    if [ "$auto_download" = "AutoClash库" ];then
+      remote_clash_download_url="http://git.168828.xyz/root/AutoClash/raw/branch/main/bin/clash_pre/clash-${cpucore}"
+      echo -e "${green}Start download Clash Premium from ${remote_clash_download_url}${end}" 
+      webget2 ${clashpre_bin} ${url_cdn}${remote_clash_download_url}
+    else
+      remote_clash_download_url=$(jq ".assets[${i}].browser_download_url" /tmp/clash_premium_release.json | tr -d '"')
+      rm /tmp/clash_premium_release.json 
+      echo "Start downloading Clash Premium ${remote_clashpre_version} from ${remote_clash_download_url}..."
+      [ -f "${autobin_dir}/clash.gz" ] && rm "${autobin_dir}/clash.gz"
+      webget2 ${autobin_dir}/clash.gz ${url_cdn}${remote_clash_download_url}
+      if [ ! -f "${autobin_dir}/clash.gz" ]; then
+        echo -e "${red}Failed to download Clash Premium.${end}"
+        echo -e "${red}Please download and upload it to ${autobin_dir} manually.${end}"
+        exit 1
+      fi
+      gzip -d "${autobin_dir}/clash.gz"
+    fi
+
+    chmod +x ${clashpre_bin} && ${clashpre_bin} -v
     if [ $? -eq 1 ]; then
       echo -e "${red}Failed to download Clash Premium.${end}"
       echo -e "${red}Please try to download it again.${end}"
@@ -652,7 +626,7 @@ update_clash_y() {
 
 install_clashmeta () {
     # ClashMeta core
-    source $ccfg
+    getcpucore
     getcpucore4
     clashmeta_url="https://api.github.com/repos/MetaCubeX/Clash.Meta/releases/latest"
 
@@ -671,33 +645,38 @@ install_clashmeta () {
         exit 1
     fi
 
-    clash_meta_download_url=$(jq ".assets[${i}].browser_download_url" /tmp/clashmeta/clash_meta_release.json | tr -d '"' | grep -m1 ${cpucore4})
-    if [ "${clash_meta_download_url}" == "" ]; then
-        echo -e "${red}No compatible Clash Meta for your platform.${end}"
-        exit 1
-    fi
-
-    echo -e "${green}Start download Clash Meta from ${clash_meta_download_url}${end}" 
-    webget2 /tmp/clashmeta/clashmeta.gz ${url_cdn}${clash_meta_download_url}
-    if [ ! -f "/tmp/clashmeta/clashmeta.gz" ]; then
-        echo -e "${red}Failed to download Clash Meta.${end}"
-        exit 1
+    if [ "$auto_download" = "AutoClash库" ];then
+      clash_meta_download_url="http://git.168828.xyz/root/AutoClash/raw/branch/main/bin/clash_meta/clash-${cpucore}"
+      echo -e "${green}Start download Clash Meta from ${clash_meta_download_url}${end}" 
+      webget2 /tmp/clashmeta/clashmeta ${url_cdn}${clash_meta_download_url}
+    else
+      clash_meta_download_url=$(jq ".assets[${i}].browser_download_url" /tmp/clashmeta/clash_meta_release.json | tr -d '"' | grep -m1 ${cpucore4})
+      if [ "${clash_meta_download_url}" == "" ]; then
+          echo -e "${red}No compatible Clash Meta for your platform.${end}"
+          exit 1
+      fi
+      echo -e "${green}Start download Clash Meta from ${clash_meta_download_url}${end}" 
+      webget2 /tmp/clashmeta/clashmeta.gz ${url_cdn}${clash_meta_download_url}
+      if [ ! -f "/tmp/clashmeta/clashmeta.gz" ]; then
+          echo -e "${red}Failed to download Clash Meta.${end}"
+          exit 1
+      fi
+      cd ~
+      gunzip /tmp/clashmeta/clashmeta.gz
     fi
 
     remote_clashmeta_version=$(jq '.name' /tmp/clashmeta/clash_meta_release.json | tr -d '"' | awk '{print $1}'| cut -d'-' -f1)
     echo "clashmeta_v ${remote_clashmeta_version}" >> ${auto_dir}/version
 
     rm -rf ${clashmeta_bin}
-    cd ~
-    gunzip /tmp/clashmeta/clashmeta.gz
     mv /tmp/clashmeta/clashmeta ${clashmeta_bin}
     chmod +x ${clashmeta_bin}
     setcap cap_net_bind_service=+ep ${clashmeta_bin}
+    rm -rf /tmp/clashmeta
 
     download_clashmeta_dashboard
     download_clashmeta_yacd
-    
-    rm -rf /tmp/clashmeta
+
     # set_clashmeta_service
     # systemctl daemon-reload >> /tmp/autoclash_setup.log 2>&1
     # systemctl start clash.service >> /tmp/autoclash_setup.log 2>&1
@@ -706,7 +685,7 @@ install_clashmeta () {
 }
 
 update_clashmeta_y() {
-    source $ccfg
+    getcpucore
     getcpucore4
     if [ ! -f "${clashmeta_bin}" ]; then
       echo "v0.0.1" > ${clashmeta_version_file}
@@ -752,23 +731,30 @@ update_clashmeta_y() {
       fi
       i=$(( i+1 ))
     done < /tmp/clash_meta_release_assets
-
     rm /tmp/clash_meta_release_assets
-    remote_clashmeta_download_url=$(jq ".assets[${i}].browser_download_url" /tmp/clash_meta_release.json | tr -d '"' | grep -m1 ${cpucore4})
-    rm /tmp/clash_meta_release.json 
-
-    echo "Start downloading Clash Meta ${remote_clashmeta_version} from ${remote_clashmeta_download_url}..."
-    [ -f "${autobin_dir}/clashmeta.gz" ] && rm "${autobin_dir}/clashmeta.gz"
-    webget2 ${autobin_dir}/clashmeta.gz ${url_cdn}${remote_clashmeta_download_url}
-    if [ ! -f "${autobin_dir}/clashmeta.gz" ]; then
-      echo -e "${red}Failed to download Clash Meta.${end}"
-      echo -e "${red}Please download and upload it to ${autobin_dir} manually.${end}"
-      exit 1
-    fi
 
     [ -f ${autobin_dir}/clashmeta.old ] && rm ${autobin_dir}/clashmeta.old
     [ -f ${clashmeta_bin} ] && mv ${clashmeta_bin} ${autobin_dir}/clashmeta.old
-    gzip -d "${autobin_dir}/clashmeta.gz" && chmod +x ${clashmeta_bin} && ${clashmeta_bin} -v
+
+    if [ "$auto_download" = "AutoClash库" ];then
+      remote_clashmeta_download_url="http://git.168828.xyz/root/AutoClash/raw/branch/main/bin/clash_meta/clash-${cpucore}"
+      echo -e "${green}Start download Clash Meta from ${remote_clashmeta_download_url}${end}" 
+      webget2 ${clashmeta_bin} ${url_cdn}${remote_clashmeta_download_url}
+    else
+      remote_clashmeta_download_url=$(jq ".assets[${i}].browser_download_url" /tmp/clash_meta_release.json | tr -d '"' | grep -m1 ${cpucore4})
+      rm /tmp/clash_meta_release.json 
+      echo "Start downloading Clash Meta ${remote_clashmeta_version} from ${remote_clashmeta_download_url}..."
+      [ -f "${autobin_dir}/clashmeta.gz" ] && rm "${autobin_dir}/clashmeta.gz"
+      webget2 ${autobin_dir}/clashmeta.gz ${url_cdn}${remote_clashmeta_download_url}
+      if [ ! -f "${autobin_dir}/clashmeta.gz" ]; then
+        echo -e "${red}Failed to download Clash Meta.${end}"
+        echo -e "${red}Please download and upload it to ${autobin_dir} manually.${end}"
+        exit 1
+      fi
+      gzip -d "${autobin_dir}/clashmeta.gz"
+    fi
+
+    chmod +x ${clashmeta_bin} && ${clashmeta_bin} -v
     if [ $? -eq 1 ]; then
       echo -e "${red}Failed to download Clash Meta.${end}"
       echo -e "${red}Please try to download it again.${end}"
@@ -785,47 +771,52 @@ update_clashmeta_y() {
 }
 
 download_clashmeta_yacd () {
-    source $ccfg
     if [ ! -d "${bindir}/ui" ]; then
       mkdir ${bindir}/ui
-    fi 
-    clashmeta_yacd_download_url="https://github.com/MetaCubeX/Yacd-meta/archive/gh-pages.zip"
+    fi
+
+    if [ "$auto_download" = "AutoClash库" ];then
+      clashmeta_yacd_download_url="http://git.168828.xyz/root/AutoClash/raw/branch/main/bin/yacd_meta.zip"
+    else
+      clashmeta_yacd_download_url="https://github.com/MetaCubeX/Yacd-meta/archive/gh-pages.zip"
+    fi
     echo -e "${green}Start download ClashMeta Yacd from ${clashmeta_yacd_download_url}${end}" 
     webget2  /tmp/yacd-meta.zip  ${url_cdn}${clashmeta_yacd_download_url}
-    if [ -f "/tmp/yacd-meta.zip" ]; then
-      cd /tmp
-      unzip yacd-meta.zip >> /dev/null 2>&1
-      [ -d "${bindir}/ui/yacd-meta" ] && rm -rf "${bindir}/ui/yacd-meta"
-      mv -f -T /tmp/Yacd-meta-gh-pages ${bindir}/ui/yacd-meta
-      rm -rf /tmp/yacd-meta.zip
-    else
+    if [ ! -f "/tmp/yacd-meta.zip" ]; then
       echo -e "${red}Failed to download Yacd Meta.${end}"
       exit 1
     fi
+    cd /tmp
+    unzip yacd-meta.zip >> /dev/null 2>&1
+    [ -d "${bindir}/ui/yacd-meta" ] && rm -rf "${bindir}/ui/yacd-meta"
+    mv -f -T /tmp/Yacd-meta-gh-pages ${bindir}/ui/yacd-meta
+    rm -rf /tmp/yacd-meta.zip
 }
 
 download_clashmeta_dashboard () {
-    source $ccfg
     if [ ! -d "${bindir}/ui" ]; then
       mkdir ${bindir}/ui
     fi 
-    clashmeta_dashboard_download_url="https://github.com/MetaCubeX/Razord-meta/archive/gh-pages.zip"
+
+    if [ "$auto_download" = "AutoClash库" ];then
+      clashmeta_dashboard_download_url="http://git.168828.xyz/root/AutoClash/raw/branch/main/bin/dashboard_meta.zip"
+    else
+      clashmeta_dashboard_download_url="https://github.com/MetaCubeX/Razord-meta/archive/gh-pages.zip"
+    fi
     echo -e "${green}Start download ClashMeta Dashboard from ${clashmeta_dashboard_download_url}${end}" 
     webget2  /tmp/dashboard-meta.zip  ${url_cdn}${clashmeta_dashboard_download_url}
-    if [ -f "/tmp/dashboard-meta.zip" ]; then
-      cd /tmp
-      unzip dashboard-meta.zip >> /dev/null 2>&1
-      [ -d "${bindir}/ui/dashboard-meta" ] && rm -rf "${bindir}/ui/dashboard-meta"
-      mv -f -T /tmp/Razord-meta-gh-pages ${bindir}/ui/dashboard-meta
-      rm -rf /tmp/dashboard-meta.zip
-    else
+    if [ ! -f "/tmp/dashboard-meta.zip" ]; then
       echo -e "${red}Failed to download Dashboard Meta.${end}"
       exit 1
     fi
+    cd /tmp
+    unzip dashboard-meta.zip >> /dev/null 2>&1
+    [ -d "${bindir}/ui/dashboard-meta" ] && rm -rf "${bindir}/ui/dashboard-meta"
+    mv -f -T /tmp/Razord-meta-gh-pages ${bindir}/ui/dashboard-meta
+    rm -rf /tmp/dashboard-meta.zip
 }
 
 install_mosdns() {
-    source $ccfg
     # Mosdns core
     mosdns_url="https://api.github.com/repos/IrineSistiana/mosdns/releases/latest"
 
@@ -844,33 +835,38 @@ install_mosdns() {
         exit 1
     fi
 
-    mosdns_download_url=$(jq ".assets[${i}].browser_download_url" /tmp/mosdns/mosdns_release.json | tr -d '"' | grep -m1 ${cpucore2})
-    if [ "${mosdns_download_url}" == "" ]; then
-        echo -e "${red}No compatible Mosdns for your platform.${end}"
-        exit 1
-    fi
-
-    echo -e "${green}Start download Mosdns from ${mosdns_download_url}${end}" 
-    webget2 /tmp/mosdns/mosdns.zip ${url_cdn}${mosdns_download_url}
-    if [ ! -f "/tmp/mosdns/mosdns.zip" ]; then
-        echo -e "${red}Failed to download Mosdns.${end}"
-        exit 1
+    if [ "$auto_download" = "AutoClash库" ];then
+      mosdns_download_url="http://git.168828.xyz/root/AutoClash/raw/branch/main/bin/mosdns/mosdns-${cpucore}"
+      echo -e "${green}Start download Mosdns from ${mosdns_download_url}${end}" 
+      webget2 /tmp/mosdns/mosdns ${url_cdn}${mosdns_download_url}
+    else
+      mosdns_download_url=$(jq ".assets[${i}].browser_download_url" /tmp/mosdns/mosdns_release.json | tr -d '"' | grep -m1 ${cpucore2})
+      if [ "${mosdns_download_url}" == "" ]; then
+          echo -e "${red}No compatible Mosdns for your platform.${end}"
+          exit 1
+      fi
+      echo -e "${green}Start download Mosdns from ${mosdns_download_url}${end}" 
+      webget2 /tmp/mosdns/mosdns.zip ${url_cdn}${mosdns_download_url}
+      if [ ! -f "/tmp/mosdns/mosdns.zip" ]; then
+          echo -e "${red}Failed to download Mosdns.${end}"
+          exit 1
+      fi
+      cd /tmp/mosdns
+      unzip /tmp/mosdns/mosdns.zip  >> /dev/null 2>&1
     fi
 
     remote_mosdns_version=$(jq '.name' /tmp/mosdns/mosdns_release.json | tr -d '"' | awk '{print $1}'| cut -d'-' -f1)
     echo "mosdns_v ${remote_mosdns_version}" >> ${auto_dir}/version
 
-    cd /tmp/mosdns
     rm -rf ${mosdns_bin}
-    unzip /tmp/mosdns/mosdns.zip  >> /dev/null 2>&1
-    mv mosdns ${mosdns_bin}
+    mv /tmp/mosdns/mosdns ${mosdns_bin}
     chmod +x ${mosdns_bin}
+    rm -rf /tmp/mosdns
 
     download_mosdns_config
     download_geoip
     download_geosite    
 
-    rm -rf /tmp/mosdns
     set_mosdns_service
     systemctl daemon-reload >> /tmp/autoclash_setup.log 2>&1
     systemctl start mosdns.service >> /tmp/autoclash_setup.log 2>&1
@@ -879,8 +875,11 @@ install_mosdns() {
 }
 
 download_mosdns_config () {
-    source $ccfg
-    config_download_url="https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/mosdns/config-sample.yaml"
+    if [ "$auto_download" = "AutoClash库" ];then
+      config_download_url="http://git.168828.xyz/root/AutoClash/raw/branch/main/file/config-mosdns.yaml"
+    else
+      config_download_url="https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/file/config-mosdns.yaml"
+    fi
     echo -e "${green}Start download Mosdns Config.yaml from ${config_download_url}${end}" 
     webget2  /tmp/config.yaml  ${url_cdn}${config_download_url}
     if [ -f "/tmp/config.yaml" ]; then
@@ -893,39 +892,43 @@ download_mosdns_config () {
 }
 
 download_geoip () {
-    source $ccfg
-    geoip_download_url="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
+    if [ "$auto_download" = "AutoClash库" ];then
+      geoip_download_url="http://git.168828.xyz/root/AutoClash/raw/branch/main/bin/geoip.dat"
+    else
+      geoip_download_url="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
+    fi
     echo -e "${green}Start download GeoIP.dat from ${geoip_download_url}${end}" 
     webget2  /tmp/geoip.dat  ${url_cdn}${geoip_download_url}
-    if [ -f "/tmp/geoip.dat" ]; then
-      [ -f "${mosdns_dir}/geoip.dat" ] && rm -rf "${mosdns_dir}/geoip.dat"
-      mv /tmp/geoip.dat ${mosdns_dir}/geoip.dat
-      [ -f "${bindir}/GeoIP.dat" ] && rm -rf "${bindir}/GeoIP.dat"
-      cp -r "${mosdns_dir}/geoip.dat" "${bindir}/GeoIP.dat"
-    else   
+    if [ ! -f "/tmp/geoip.dat" ]; then
       echo -e "${red}Failed to download GeoIP.dat${end}"
       exit 1
     fi
+    [ -f "${mosdns_dir}/geoip.dat" ] && rm -rf "${mosdns_dir}/geoip.dat"
+    mv /tmp/geoip.dat ${mosdns_dir}/geoip.dat
+    [ -f "${bindir}/GeoIP.dat" ] && rm -rf "${bindir}/GeoIP.dat"
+    cp -r "${mosdns_dir}/geoip.dat" "${bindir}/GeoIP.dat"
 }
 
 download_geosite () {
-    source $ccfg
-    geosite_download_url="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
+    if [ "$auto_download" = "AutoClash库" ];then
+      geosite_download_url="http://git.168828.xyz/root/AutoClash/raw/branch/main/bin/geosite.dat"
+    else
+      geosite_download_url="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
+    fi
     echo -e "${green}Start download Mosdns GeoSite.dat from ${geosite_download_url}${end}" 
     webget2  /tmp/geosite.dat  ${url_cdn}${geosite_download_url}
-    if [ -f "/tmp/geosite.dat" ]; then
-      [ -f "${mosdns_dir}/geosite.dat" ] && rm -rf "${mosdns_dir}/geosite.dat"
-      mv /tmp/geosite.dat ${mosdns_dir}/geosite.dat
-      [ -f "${bindir}/GeoSite.dat" ] && rm -rf "${bindir}/GeoSite.dat"
-      cp -r "${mosdns_dir}/geosite.dat" "${bindir}/GeoSite.dat"
-    else
+    if [ ! -f "/tmp/geosite.dat" ]; then
       echo -e "${red}Failed to download GeoSite.dat${end}"
       exit 1
     fi
+    [ -f "${mosdns_dir}/geosite.dat" ] && rm -rf "${mosdns_dir}/geosite.dat"
+    mv /tmp/geosite.dat ${mosdns_dir}/geosite.dat
+    [ -f "${bindir}/GeoSite.dat" ] && rm -rf "${bindir}/GeoSite.dat"
+    cp -r "${mosdns_dir}/geosite.dat" "${bindir}/GeoSite.dat"
 }
 
 update_mosdns_y() {
-    source $ccfg
+    getcpucore
     getcpucore2
     if [ ! -f "${mosdns_bin}" ]; then
       echo "v0.0.1" > ${mosdns_version_file}
@@ -971,23 +974,31 @@ update_mosdns_y() {
       fi
       i=$(( i+1 ))
     done < /tmp/mosdns_release_assets
-
     rm /tmp/mosdns_release_assets
-    remote_mosdns_download_url=$(jq ".assets[${i}].browser_download_url" /tmp/mosdns_release.json | tr -d '"')
-    rm /tmp/mosdns_release.json
-    echo "Start downloading Mosdns ${remote_mosdns_version} from ${remote_mosdns_download_url}"
-    [ -f "${autobin_dir}/mosdns.zip" ] && rm "${autobin_dir}/mosdns.zip"
-    webget2 ${autobin_dir}/mosdns.zip ${url_cdn}${remote_mosdns_download_url}
-    if [ ! -f "${autobin_dir}/mosdns.zip" ]; then
-      echo -e "${red}Failed to download Mosdns.${end}"
-      echo -e "${red}Please download and upload it to ${autobin_dir} manually.${end}"
-      exit 1
-    fi
 
     [ -f ${autobin_dir}/mosdns.old ] && rm ${autobin_dir}/mosdns.old
     [ -f ${mosdns_bin} ] && mv ${mosdns_bin} ${autobin_dir}/mosdns.old
-    unzip "${autobin_dir}/mosdns.zip" "mosdns" -d ${autobin_dir} >> /dev/null 2>&1 && chmod +x ${mosdns_bin} && ${mosdns_bin} version
-    [ -f ${autobin_dir}/mosdns.zip ] && rm "${autobin_dir}/mosdns.zip"
+
+    if [ "$auto_download" = "AutoClash库" ];then
+      remote_mosdns_download_url="http://git.168828.xyz/root/AutoClash/raw/branch/main/bin/mosdns/mosdns-${cpucore}"
+      echo -e "${green}Start download Mosdns from ${remote_mosdns_download_url}${end}" 
+      webget2 ${mosdns_bin} ${url_cdn}${remote_mosdns_download_url}
+    else
+      remote_mosdns_download_url=$(jq ".assets[${i}].browser_download_url" /tmp/mosdns_release.json | tr -d '"')
+      rm /tmp/mosdns_release.json
+      echo "Start downloading Mosdns ${remote_mosdns_version} from ${remote_mosdns_download_url}"
+      [ -f "${autobin_dir}/mosdns.zip" ] && rm "${autobin_dir}/mosdns.zip"
+      webget2 ${autobin_dir}/mosdns.zip ${url_cdn}${remote_mosdns_download_url}
+      if [ ! -f "${autobin_dir}/mosdns.zip" ]; then
+        echo -e "${red}Failed to download Mosdns.${end}"
+        echo -e "${red}Please download and upload it to ${autobin_dir} manually.${end}"
+        exit 1
+      fi
+      unzip "${autobin_dir}/mosdns.zip" "mosdns" -d ${autobin_dir} >> /dev/null 2>&1
+      [ -f ${autobin_dir}/mosdns.zip ] && rm "${autobin_dir}/mosdns.zip"
+    fi
+
+    chmod +x ${mosdns_bin} && ${mosdns_bin} version
     if [ $? -eq 1 ]; then
       echo -e "${red}Failed to download Mosdns.${end}"
       echo -e "${red}Please try to download it again.${end}"
@@ -1004,7 +1015,6 @@ update_mosdns_y() {
 }
 
 install_subconverter() {
-    source $ccfg
     # Subconverter core
     subconverter_url="https://api.github.com/repos/tindy2013/subconverter/releases/latest"
 
@@ -1023,12 +1033,15 @@ install_subconverter() {
         exit 1
     fi
 
-    subconverter_download_url=$(jq ".assets[${i}].browser_download_url" /tmp/subconverter/subconverter_release.json | tr -d '"' | grep -m1 ${cpucore3})
+    if [ "$auto_download" = "AutoClash库" ];then
+      subconverter_download_url="http://git.168828.xyz/root/AutoClash/raw/branch/main/bin/subconverter_alpha/subconverter-${cpucore}.tar.gz"
+    else
+      subconverter_download_url=$(jq ".assets[${i}].browser_download_url" /tmp/subconverter/subconverter_release.json | tr -d '"' | grep -m1 ${cpucore3})
+    fi 
     if [ "${subconverter_download_url}" == "" ]; then
         echo -e "${red}No compatible Subconverter for your platform.${end}"
         exit 1
     fi
-
     echo -e "${green}Start download Subconverter from ${subconverter_download_url}${end}" 
     webget2 /tmp/subconverter/subconverter.tar.gz ${url_cdn}${subconverter_download_url}
     if [ ! -f "/tmp/subconverter/subconverter.tar.gz" ]; then
@@ -1036,20 +1049,26 @@ install_subconverter() {
         exit 1
     fi
 
-    rm -rf ${sub_bin}
     cd /tmp/subconverter
     tar -zxvf subconverter.tar.gz  >> /dev/null 2>&1
+    rm -rf ${sub_bin}
     mv subconverter ${auto_dir}
     chmod +x ${sub_bin}
+    rm -rf /tmp/subconverter
 
     if [ ! -f "${subconverter_version_file}" ]; then
       echo 0 > ${subconverter_version_file}
     fi
-    remote_subconverter_version=$(jq '.name' /tmp/subconverter/subconverter_release.json | tr -d '"' | tr -d 'v')
+
+    if [ "$auto_download" = "AutoClash库" ];then
+      remote_subconverter_version=$(curl -sL https://api.github.com/repos/MetaCubeX/subconverter/releases/latest | grep '"tag_name": ' | sed -E 's/.*"([^"]+)".*/\1/' | head -n 1)
+    else
+      remote_subconverter_version=$(curl -sL https://api.github.com/repos/tindy2013/subconverter/releases/latest | grep '"tag_name": ' | sed -E 's/.*"([^"]+)".*/\1/' | head -n 1)
+    fi 
+    # remote_subconverter_version=$(jq '.name' /tmp/subconverter/subconverter_release.json | grep '"tag_name": ' | sed -E 's/.*"([^"]+)".*/\1/' | head -n 1)
     echo "${remote_subconverter_version}" > "${subconverter_version_file}"
     echo "subconverter_v ${remote_subconverter_version}" >> ${auto_dir}/version
 
-    rm -rf /tmp/subconverter
     set_subconverter_service
     systemctl daemon-reload >> /tmp/autoclash_setup.log 2>&1
     systemctl start subconverter.service >> /tmp/autoclash_setup.log 2>&1
@@ -1078,7 +1097,6 @@ EOF
 }
 
 update_subconverter_y() {
-    source $ccfg
     getcpucore3
     if [ ! -f "${subconverter_version_file}" ]; then
       echo 0 > ${subconverter_version_file}
@@ -1116,9 +1134,13 @@ update_subconverter_y() {
       fi
       i=$(( i+1 ))
     done < /tmp/subconverter_release_assets
-
     rm /tmp/subconverter_release_assets
-    remote_subconverter_download_url=$(jq ".assets[${i}].browser_download_url" /tmp/subconverter_release.json | tr -d '"' | grep -m1 ${cpucore3})
+
+    if [ "$auto_download" = "AutoClash库" ];then
+      remote_subconverter_download_url="http://git.168828.xyz/root/AutoClash/raw/branch/main/bin/subconverter_alpha/subconverter-${cpucore}.tar.gz"
+    else
+      remote_subconverter_download_url=$(jq ".assets[${i}].browser_download_url" /tmp/subconverter_release.json | tr -d '"' | grep -m1 ${cpucore3})
+    fi
     rm /tmp/subconverter_release.json
     echo "Start download Subconverter v${remote_subconverter_version} from ${remote_subconverter_download_url}..."
     [ -f "/tmp/subconverter.tar.gz" ] && rm "/tmp/subconverter.tar.gz"
@@ -1151,7 +1173,6 @@ update_subconverter_y() {
 
 
 install_adguardhome() {
-    source $ccfg
     getcpucore5
     # AdGuardHome core
     adguardhome_url="https://api.github.com/repos/AdguardTeam/AdGuardHome/releases/latest"
@@ -1171,37 +1192,43 @@ install_adguardhome() {
         exit 1
     fi
 
-    adguardhome_download_url=$(jq ".assets[${i}].browser_download_url" /tmp/adguardhome/adguardhome_release.json | tr -d '"' | grep -m1 ${cpucore5})
-    if [ "${adguardhome_download_url}" == "" ]; then
-        echo -e "${red}No compatible AdGuardHome for your platform.${end}"
-        exit 1
-    fi
-
-    echo -e "${green}Start download AdGuardHome from ${adguardhome_download_url}${end}" 
-    webget2 /tmp/adguardhome/adguardhome.tar.gz ${url_cdn}${adguardhome_download_url}
-    if [ ! -f "/tmp/adguardhome/adguardhome.tar.gz" ]; then
-        echo -e "${red}Failed to download AdGuardHome.${end}"
-        exit 1
+    if [ "$auto_download" = "AutoClash库" ];then
+      adguardhome_download_url="http://git.168828.xyz/root/AutoClash/raw/branch/main/bin/adguardhome/AdGuardHome-${cpucore}"
+      echo -e "${green}Start download AdGuardHome from ${adguardhome_download_url}${end}" 
+      webget2 /tmp/adguardhome/AdGuardHome ${url_cdn}${adguardhome_download_url}
+      rm -rf ${adg_bin}
+      mv /tmp/adguardhome/AdGuardHome ${adg_dir}
+    else
+      adguardhome_download_url=$(jq ".assets[${i}].browser_download_url" /tmp/adguardhome/adguardhome_release.json | tr -d '"' | grep -m1 ${cpucore5})
+      if [ "${adguardhome_download_url}" == "" ]; then
+          echo -e "${red}No compatible AdGuardHome for your platform.${end}"
+          exit 1
+      fi
+      echo -e "${green}Start download AdGuardHome from ${adguardhome_download_url}${end}" 
+      webget2 /tmp/adguardhome/adguardhome.tar.gz ${url_cdn}${adguardhome_download_url}
+      if [ ! -f "/tmp/adguardhome/adguardhome.tar.gz" ]; then
+          echo -e "${red}Failed to download AdGuardHome.${end}"
+          exit 1
+      fi
+      cd /tmp/adguardhome
+      rm -rf ${adg_bin}
+      tar -zxvf adguardhome.tar.gz  >> /dev/null 2>&1
+      cd AdGuardHome
+      mv AdGuardHome ${adg_dir}
     fi
 
     if [ ! -f "${adguardhome_version_file}" ]; then
       echo 0 > ${adguardhome_version_file}
     fi
-
     remote_adguardhome_version=$(jq '.tag_name' /tmp/adguardhome/adguardhome_release.json | tr -d '"' | awk '{print $1}'| cut -d'-' -f1)
     echo "${remote_adguardhome_version}" > "${adguardhome_version_file}"
     echo "adguardhome_v ${remote_adguardhome_version}" >> ${auto_dir}/version
 
-    cd /tmp/adguardhome
-    rm -rf ${adg_bin}
-    tar -zxvf adguardhome.tar.gz  >> /dev/null 2>&1
-    cd AdGuardHome
-    mv AdGuardHome ${adg_dir}
     chmod +x ${adg_bin}
+    rm -rf /tmp/adguardhome
 
     download_adguardhome_config
 
-    rm -rf /tmp/adguardhome
     set_adguardhome_service
     systemctl daemon-reload >> /tmp/autoclash_setup.log 2>&1
     systemctl start adguardhome.service >> /tmp/autoclash_setup.log 2>&1
@@ -1210,8 +1237,11 @@ install_adguardhome() {
 }
 
 download_adguardhome_config () {
-    source $ccfg
-    config_download_url="https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/adguardhome/AdGuardHome.yaml"
+    if [ "$auto_download" = "AutoClash库" ];then
+      config_download_url="http://git.168828.xyz/root/AutoClash/raw/branch/main/file/AdGuardHome.yaml"
+    else
+      config_download_url="https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/file/AdGuardHome.yaml"
+    fi
     echo -e "${green}Start download AdGuardHome AdGuardHome.yaml from ${config_download_url}${end}" 
     webget2  /tmp/AdGuardHome.yaml  ${url_cdn}${config_download_url}
     if [ -f "/tmp/AdGuardHome.yaml" ]; then
@@ -1224,7 +1254,6 @@ download_adguardhome_config () {
 }
 
 update_adguardhome_y() {
-    source $ccfg
     getcpucore5
     if [ ! -f "${adguardhome_version_file}" ]; then
       echo 0 > ${adguardhome_version_file}
@@ -1262,49 +1291,54 @@ update_adguardhome_y() {
       fi
       i=$(( i+1 ))
     done < /tmp/adguardhome_release_assets
-
     rm /tmp/adguardhome_release_assets
-    remote_adguardhome_download_url=$(jq ".assets[${i}].browser_download_url" /tmp/adguardhome_release.json | tr -d '"' | grep -m1 ${cpucore5})
-    rm /tmp/adguardhome_release.json
-    echo "Start download AdGuardHome ${remote_adguardhome_version} from ${remote_adguardhome_download_url}..."
-    [ -f "/tmp/adguardhome.tar.gz" ] && rm "/tmp/adguardhome.tar.gz"
-    webget2 /tmp/adguardhome.tar.gz ${url_cdn}${remote_adguardhome_download_url}
-    if [ ! -f "/tmp/adguardhome.tar.gz" ]; then
-      echo -e "${red}Failed to download AdGuardHome${end}"
-      exit 1
-    fi
 
-    [ -d "/tmp/adguardhome" ] && rm -rf "/tmp/adguardhome"
-    cd /tmp
-    tar -zxvf adguardhome.tar.gz  >> /dev/null 2>&1
-    if [ $? -ne 0 ]; then
-      echo -e "${red}Failed to tar AdGuardHome.tar.gz${end}"
+    if [ "$auto_download" = "AutoClash库" ];then
+      remote_adguardhome_download_url="http://git.168828.xyz/root/AutoClash/raw/branch/main/bin/adguardhome/AdGuardHome-${cpucore}"
+      echo -e "${green}Start download AdGuardHome from ${remote_adguardhome_download_url}${end}" 
+      webget2 /tmp/AdGuardHome ${url_cdn}${remote_adguardhome_download_url}
+      rm -rf ${adg_bin}
+      chmod +x ${adg_bin}
+      mv /tmp/AdGuardHome ${adg_dir}
+    else
+      remote_adguardhome_download_url=$(jq ".assets[${i}].browser_download_url" /tmp/adguardhome_release.json | tr -d '"' | grep -m1 ${cpucore5})
+      rm /tmp/adguardhome_release.json
+      echo "Start download AdGuardHome ${remote_adguardhome_version} from ${remote_adguardhome_download_url}..."
+      [ -f "/tmp/adguardhome.tar.gz" ] && rm "/tmp/adguardhome.tar.gz"
+      webget2 /tmp/adguardhome.tar.gz ${url_cdn}${remote_adguardhome_download_url}
+      if [ ! -f "/tmp/adguardhome.tar.gz" ]; then
+        echo -e "${red}Failed to download AdGuardHome${end}"
+        exit 1
+      fi
+
+      [ -d "/tmp/AdGuardHome" ] && rm -rf "/tmp/AdGuardHome"
+      cd /tmp
+      tar -zxvf adguardhome.tar.gz  >> /dev/null 2>&1
+      if [ $? -ne 0 ]; then
+        echo -e "${red}Failed to tar AdGuardHome.tar.gz${end}"
+        rm /tmp/adguardhome.tar.gz
+        exit 1
+      fi
       rm /tmp/adguardhome.tar.gz
-      exit 1
+      [ -d ${adg_bin} ] && rm -rf ${adg_bin}
+      cd /tmp/AdGuardHome
+      mv AdGuardHome ${adg_bin}
+      chmod +x ${adg_bin}
+      rm -rf /tmp/AdGuardHome
     fi
-    rm /tmp/adguardhome.tar.gz
-    [ -d "${adg_bin}" ] && rm -rf "${adg_bin}"
-
-    cd /tmp/AdGuardHome
-    mv AdGuardHome ${adg_bin}
-    chmod +x ${adg_bin}
-    rm -rf /tmp/AdGuardHome
-
     echo "${remote_adguardhome_version}" > "${adguardhome_version_file}"
     echo -e "${green}AdGuardHome has been updated${end}"
     restart_adguardhome
 }
 
 update_shell_y() {
-    source $ccfg
-    download_sps
-    new_shell_ver=$(wget -qO- ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/version | grep version | awk '{print $2}')
+    new_shell_ver=$(wget -qO- ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/bin/version | grep version | awk -F'=' '{ print $2 }')
     webget2 /tmp/autoclash ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/scripts/autoclash
     if [[ $? -ne 0 ]]; then
       echo -e "${red}AutoClash下载失败!${end}"
       exit 1
     fi
-    
+    download_sps
     echo -e "`date +%F\ %T` AutoClash v${new_shell_ver} 下载成功!" >> /tmp/update.log  2>&1
     rm -rf ${auto_dir}   
     mv /tmp/autoclash ${auto_dir}  >> /dev/null 2>&1
@@ -1313,8 +1347,7 @@ update_shell_y() {
 }
 
 update_shell() {
-    source $ccfg
-    new_shell_ver=$(wget -qO- ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/version | grep version | awk '{print $2}')
+    new_shell_ver=$(wget -qO- ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/bin/version | grep version | awk -F'=' '{ print $2 }')
     if [[ "${sh_ver}" != "${new_shell_ver}" ]]; then
       echo -e "`date +%F\ %T` AutoClash  最新版本: ${new_shell_ver}，当前版本:${sh_ver}"
       webget2 /tmp/autoclash ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/scripts/autoclash
@@ -1322,7 +1355,7 @@ update_shell() {
         echo -e "${red}AutoClash下载失败!${end}"
         exit 1
       fi
-
+      download_sps
       echo -e "`date +%F\ %T` AutoClash v${new_shell_ver} 下载成功!" >> /tmp/update.log  2>&1
       rm -rf ${auto_dir}   
       mv /tmp/autoclash ${auto_dir}  >> /dev/null 2>&1
@@ -1334,7 +1367,11 @@ update_shell() {
 download_sps() {
     mkdir -p ${sps_dir}
 
-    rules_download_url="https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/scripts/start.sh"
+    if [ "$auto_download" = "AutoClash库" ];then
+      rules_download_url="http://git.168828.xyz/root/AutoClash/raw/branch/main/scripts/start.sh"
+    else
+      rules_download_url="https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/scripts/start.sh"
+    fi
     echo -e "${green}Start download start.sh from ${rules_download_url}${end}" 
     webget2  /tmp/start.sh  ${url_cdn}${rules_download_url}
     if [ ! -f "/tmp/start.sh" ]; then
@@ -1347,7 +1384,6 @@ download_sps() {
 }
 
 install_nftables_cn() {
-    source $ccfg
     if [ ! -d "/tmp/nftables" ]; then
       mkdir /tmp/nftables
     fi
@@ -1370,16 +1406,18 @@ EOF
 # SUBSYSTEM=="net",ENV{INTERFACE}=="utun",ACTION=="add",RUN+="${sps_dir}/rules.sh setup"
 # SUBSYSTEM=="net",ENV{INTERFACE}=="utun",ACTION=="remove",RUN+="${sps_dir}/rules.sh clean"
 # EOF
-
-    echo -e "${yellow}Nftables successfully installed${end}"
 }
 
 download_cn_ip() {
-    source $ccfg
     if [ ! -d "/tmp/nftables" ]; then
       mkdir /tmp/nftables
     fi
-    china_ip_list_download_url="https://raw.githubusercontent.com/17mon/china_ip_list/master/china_ip_list.txt"
+
+    if [ "$auto_download" = "AutoClash库" ];then
+      china_ip_list_download_url="http://git.168828.xyz/root/AutoClash/raw/branch/main/bin/china_ip_list.txt"
+    else
+      china_ip_list_download_url="https://raw.githubusercontent.com/17mon/china_ip_list/master/china_ip_list.txt"
+    fi
     echo -e "${green}Start download china_ip_list from ${china_ip_list_download_url}${end}" 
     webget2  /tmp/nftables/china_ip_list.txt  ${url_cdn}${china_ip_list_download_url}
     if [ ! -f "/tmp/nftables/china_ip_list.txt" ]; then
@@ -1413,42 +1451,88 @@ EOF
 # sed -i  s/'autoclash restart'/'autoclash check_ver'/g  /var/spool/cron/crontabs/root
 
 check_autoclash_ver() {
-    source $ccfg
-    new_autoclash_ver=$(wget -qO- ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/version | grep version | awk '{print $2}')
-    sed -i  's/'version'/'"version ${new_autoclash_ver}"'/g'  ${auto_dir}/version
+    # new_autoclash_ver=$(wget -qO- ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/bin/version | grep version | awk '{print $2}')
+    # sed -i  's/'version'/'"version ${new_autoclash_ver}"'/g'  ${auto_dir}/version
+    new_autoclash_ver=$(wget -qO- ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/bin/version | grep -oE 'version=.*' | awk -F'=' '{ print $2 }')
+    sed -i '/version*/'d ${auto_dir}/version
+    echo version=${new_autoclash_ver} >> ${auto_dir}/version
 }
 
 check_clashpre_ver() {
-    new_clashpre_ver=$(wget -qO- https://api.github.com/repos/Dreamacro/clash/releases/tags/premium | grep '"name": "Premium' | sed -E 's/.*"Premium ([^"]+)".*/\1/')
-    # new_clashpre_ver=$( wget -qO- ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/version | grep clashpre_v | awk '{print $2}')
-    # now_clashpre_ver=$(clash -v | awk '{print $2}')
-    sed -i  's/'clashpre_v'/'"clashpre_v ${new_clashpre_ver}"'/g'  ${auto_dir}/version
+    # new_clashpre_ver=$(wget -qO- https://api.github.com/repos/Dreamacro/clash/releases/tags/premium | grep '"name": "Premium' | sed -E 's/.*"Premium ([^"]+)".*/\1/')
+    # # new_clashpre_ver=$( wget -qO- ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/version | grep clashpre_v | awk '{print $2}')
+    # # now_clashpre_ver=$(clash -v | awk '{print $2}')
+    # sed -i  's/'clashpre_v'/'"clashpre_v ${new_clashpre_ver}"'/g'  ${auto_dir}/version
+
+    if [ "$auto_download" = "AutoClash库" ];then
+      new_clashpre_ver=$(wget -qO- ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/bin/version | grep clashpre_v | awk -F'=' '{ print $2 }')
+    else
+      new_clashpre_ver=$(wget -qO- https://api.github.com/repos/Dreamacro/clash/releases/tags/premium | grep '"name": "Premium' | sed -E 's/.*"Premium ([^"]+)".*/\1/')
+    fi
+    sed -i '/clashpre_v*/'d ${auto_dir}/version
+    echo clashpre_v=${new_clashpre_ver} >> ${auto_dir}/version
+
 }
 
 check_clashmeta_ver() {
-    new_clashmeta_ver=$(wget -qO- https://api.github.com/repos/MetaCubeX/Clash.Meta/releases/latest | grep '"tag_name": ' | sed -E 's/.*"([^"]+)".*/\1/' | head -n 1)
-    # new_clashmeta_ver=$( wget -qO- ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/version | grep clashmeta_v | awk '{print $2}')
-    # now_clashmeta_ver=$(clash -v | awk '{print $2}')
-    sed -i  's/'clashmeta_v'/'"clashmeta_v ${new_clashmeta_ver}"'/g'  ${auto_dir}/version
+    # new_clashmeta_ver=$(wget -qO- https://api.github.com/repos/MetaCubeX/Clash.Meta/releases/latest | grep '"tag_name": ' | sed -E 's/.*"([^"]+)".*/\1/' | head -n 1)
+    # # new_clashmeta_ver=$( wget -qO- ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/version | grep clashmeta_v | awk '{print $2}')
+    # # now_clashmeta_ver=$(clash -v | awk '{print $2}')
+    # sed -i  's/'clashmeta_v'/'"clashmeta_v ${new_clashmeta_ver}"'/g'  ${auto_dir}/version
+
+    if [ "$auto_download" = "AutoClash库" ];then
+      new_clashmeta_ver=$(wget -qO- ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/bin/version | grep clashmeta_v | awk -F'=' '{ print $2 }')
+    else
+      new_clashmeta_ver=$(wget -qO- https://api.github.com/repos/MetaCubeX/Clash.Meta/releases/latest | grep '"tag_name": ' | sed -E 's/.*"([^"]+)".*/\1/' | head -n 1)
+    fi
+    sed -i '/clashmeta_v*/'d ${auto_dir}/version
+    echo clashmeta_v=${new_clashmeta_ver} >> ${auto_dir}/version
+
 }
 
 check_mosdns_ver() {
-    new_mosdns_ver=$(wget -qO- https://api.github.com/repos/IrineSistiana/mosdns/releases/latest | grep '"tag_name": ' | sed -E 's/.*"([^"]+)".*/\1/' | head -n 1)
-    # new_mosdns_ver=$(wget -qO- ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/version | grep mosdns_v | awk '{print $2}')
-    # now_mosdns_ver=$(mosdns -v | awk '{print $1}'| cut -d'-' -f1)
-    sed -i  's/'mosdns_v'/'"mosdns_v ${new_mosdns_ver}"'/g'  ${auto_dir}/version
+    # new_mosdns_ver=$(wget -qO- https://api.github.com/repos/IrineSistiana/mosdns/releases/latest | grep '"tag_name": ' | sed -E 's/.*"([^"]+)".*/\1/' | head -n 1)
+    # # new_mosdns_ver=$(wget -qO- ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/version | grep mosdns_v | awk '{print $2}')
+    # # now_mosdns_ver=$(mosdns -v | awk '{print $1}'| cut -d'-' -f1)
+    # sed -i  's/'mosdns_v'/'"mosdns_v ${new_mosdns_ver}"'/g'  ${auto_dir}/version
+
+    if [ "$auto_download" = "AutoClash库" ];then
+      new_mosdns_ver=$(wget -qO- ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/bin/version | grep mosdns_v | awk -F'=' '{ print $2 }')
+    else
+      new_mosdns_ver=$(wget -qO- https://api.github.com/repos/IrineSistiana/mosdns/releases/latest | grep '"tag_name": ' | sed -E 's/.*"([^"]+)".*/\1/' | head -n 1)
+    fi
+    sed -i '/mosdns_v*/'d ${auto_dir}/version
+    echo mosdns_v=${new_mosdns_ver} >> ${auto_dir}/version
 }
 
 check_subconverter_ver() {
-    new_subconverter_ver=$(wget -qO- https://api.github.com/repos/tindy2013/subconverter/releases/latest | grep '"tag_name": ' | sed -E 's/.*"([^"]+)".*/\1/' | head -n 1)
-    # new_subconverter_ver=$(wget -qO- ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/version | grep subconverter_v | awk '{print $2}')
-    sed -i  's/'subconverter_v'/'"subconverter_v ${new_subconverter_ver}"'/g'  ${auto_dir}/version
+    # new_subconverter_ver=$(wget -qO- https://api.github.com/repos/tindy2013/subconverter/releases/latest | grep '"tag_name": ' | sed -E 's/.*"([^"]+)".*/\1/' | head -n 1)
+    # # new_subconverter_ver=$(wget -qO- ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/version | grep subconverter_v | awk '{print $2}')
+    # sed -i  's/'subconverter_v'/'"subconverter_v ${new_subconverter_ver}"'/g'  ${auto_dir}/version
+
+    if [ "$auto_download" = "AutoClash库" ];then
+      new_subconverter_ver=$(wget -qO- ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/bin/version | grep subconverter_v | awk -F'=' '{ print $2 }')
+    else
+      new_subconverter_ver=$(wget -qO- https://api.github.com/repos/tindy2013/subconverter/releases/latest | grep '"tag_name": ' | sed -E 's/.*"([^"]+)".*/\1/' | head -n 1)
+    fi
+    sed -i '/subconverter_v*/'d ${auto_dir}/version
+    echo subconverter_v=${new_subconverter_ver} >> ${auto_dir}/version
+
 }
 
 check_adguardhome_ver() {
-    new_adguardhome_ver=$(wget -qO- https://api.github.com/repos/AdguardTeam/AdGuardHome/releases/latest | grep '"tag_name": ' | sed -E 's/.*"([^"]+)".*/\1/' | head -n 1)
-    # new_subconverter_ver=$(wget -qO- ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/version | grep subconverter_v | awk '{print $2}')
-    sed -i  's/'adguardhome_v'/'"adguardhome_v ${new_adguardhome_ver}"'/g'  ${auto_dir}/version
+    # new_adguardhome_ver=$(wget -qO- https://api.github.com/repos/AdguardTeam/AdGuardHome/releases/latest | grep '"tag_name": ' | sed -E 's/.*"([^"]+)".*/\1/' | head -n 1)
+    # # new_subconverter_ver=$(wget -qO- ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/version | grep subconverter_v | awk '{print $2}')
+    # sed -i  's/'adguardhome_v'/'"adguardhome_v ${new_adguardhome_ver}"'/g'  ${auto_dir}/version
+
+    if [ "$auto_download" = "AutoClash库" ];then
+      new_adguardhome_ver=$(wget -qO- ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/bin/version | grep adguardhome_v | awk -F'=' '{ print $2 }')
+    else
+      new_adguardhome_ver=$(wget -qO- https://api.github.com/repos/AdguardTeam/AdGuardHome/releases/latest | grep '"tag_name": ' | sed -E 's/.*"([^"]+)".*/\1/' | head -n 1)
+    fi
+    sed -i '/adguardhome_v*/'d ${auto_dir}/version
+    echo adguardhome_v=${new_adguardhome_ver} >> ${auto_dir}/version
+
 }
 
 check_ver() {
@@ -1461,9 +1545,9 @@ check_ver() {
     check_adguardhome_ver
 }
 
-
 check_clash_port() {
-    pIDa=`lsof -i :9090|grep -v "PID" | awk '{print $2}'`
+    source $ccfg
+    pIDa=`lsof -i :${db_port}|grep -v "PID" | awk '{print $2}'`
     if [ "$pIDa" = "" ];then
       return 1
     else
@@ -1498,49 +1582,40 @@ ping_service() {
     fi
 }
 
-update_config () {
-    download_clash_Country
-    restart_clash
-    download_mosdns_config
-    download_geosite
-    download_geoip
-    restart_mosdns    
-    download_cn_ip
-    download_adguardhome_config
-}
-
 check_ccfg() {
   if [ ! -f "$ccfg" ]; then
 cat << EOF > $ccfg
 #标识clash运行状态的文件，不明勿动！
-# clash核心:clashpre,clashmeta
-clashcore=clashpre
-# clash运行模式:混合模式,Redir模式,Tun模式,TProxy模式
-redir_mod=混合模式
-# clash的DNS模式:fake-ip,redir_host
-dns_mod=fake-ip
-# HTTP(S) 和 SOCKS 代理混合端口
-mix_port=7891
-# 设置Http/Sock5密码,格式必须是'用户名:密码'的形式，注意用小写冒号分隔！
+# auto_download:从autoclash服务器下载
+auto_download=AutoClash库
+# authentication:设置Http/Sock5密码,格式必须是'用户名:密码'的形式，注意用小写冒号分隔！
 authentication=''
-# redir透明代理端口
+# redir_port:redir透明代理端口
 redir_port=7892
-# tproxy透明代理端口
+# tproxy_port:tproxy透明代理端口
 tproxy_port=7893
-# RESTful API 监听地址端口
+# db_port:RESTful API 监听地址端口
 db_port=9090
-# RESTful API 监听地址密码
+# secret:RESTful API 监听地址密码
 secret=''
-# clash到DNS服务器监听端口
+# dns_port:clash到DNS服务器监听端口
 dns_port=5352
-# 跳过本地证书验证
+# skip_cert:跳过本地证书验证
 skip_cert=已开启
-# 嗅探域名
+# sniffer:嗅探域名
 sniffer=已开启
-# 配置文件https://raw前添加代理
+# raw_cdn:配置文件https://raw前添加代理
 raw_cdn=已开启
-# 代理地址
+# url_cdn:代理地址
 url_cdn='https://gh.168828.xyz/'
+# clashcore:clash核心[clashpre,clashmeta]
+clashcore=clashpre
+# redir_mod:clash运行模式[混合模式,Redir模式,Tun模式,TProxy模式]
+redir_mod=混合模式
+# dns_mod:clash的DNS模式[fake-ip,redir_host]
+dns_mod=fake-ip
+# mix_port:HTTP(S) 和 SOCKS 代理混合端口
+mix_port=7891
 EOF
   fi
 }
@@ -1552,31 +1627,47 @@ config_url_cdn(){
   echo 2  https://gh.168828.xyz/
   echo 3  https://pro.feverrun.xyz/
   echo 4  http://gh.smiek.tk:8080/
-  echo 5  http://hub.fgit.ml/
-  echo 6  不使用代理
+  echo 5  不使用代理
   echo -----------------------------------------------
   read -e -p "请输入对应数字 > " num
   if [ "$num" = 1 ];then
-    sed -i '/url_cdn = */'d $ccfg
+    # sed -i '/url_cdn = */'d $ccfg
     setconfig url_cdn \'https://ghproxy.com/\'
   elif [ "$num" = 2 ];then
-    sed -i '/url_cdn = */'d $ccfg
+    # sed -i '/url_cdn = */'d $ccfg
     setconfig url_cdn \'https://gh.168828.xyz/\'
   elif [ "$num" = 3 ];then
-    sed -i '/url_cdn = */'d $ccfg
+    # sed -i '/url_cdn = */'d $ccfg
     setconfig url_cdn \'https://pro.feverrun.xyz\'
   elif [ "$num" = 4 ];then
-    sed -i '/url_cdn = */'d $ccfg
+    # sed -i '/url_cdn = */'d $ccfg
     setconfig url_cdn \'http://gh.smiek.tk:8080/\'
   elif [ "$num" = 5 ];then
-    sed -i '/url_cdn = */'d $ccfg
-    setconfig url_cdn \'http://hub.fgit.ml/\'
-  elif [ "$num" = 6 ];then
-    sed -i '/url_cdn = */'d $ccfg
+    # sed -i '/url_cdn = */'d $ccfg
     setconfig url_cdn \'\'
   else
     errornum
     config_url_cdn
+  fi
+}
+
+config_auto_download(){
+  echo -----------------------------------------------
+  echo 1  AutoClash库下载
+  echo 2  原作者GitHub下载
+  echo -----------------------------------------------
+  read -e -p "请输入对应数字 > " num
+  if [ "$num" = 1 ];then
+    # sed -i '/url_cdn = */'d $ccfg
+    setconfig auto_download AutoClash库
+    setconfig url_cdn \'\'
+  elif [ "$num" = 2 ];then
+    # sed -i '/url_cdn = */'d $ccfg
+    setconfig auto_download 原作者GitHub
+    config_url_cdn
+  else
+    errornum
+    config_auto_download
   fi
 }
 
@@ -1614,43 +1705,38 @@ install() {
     getcpucore3
     getcpucore4
     getcpucore5
-    check_clash_port    
-    if [[ $? == 0 ]]; then
-      echo -e "${green}AutoClash已安装${end}"
-      exit 1
-    else
-      echo -----------------------------------------------    
-      echo -e "${green}欢迎安装AutoClash${end}"
-      check_disk_status
-      check_ccfg
-      config_url_cdn
-      echo -----------------------------------------------
-      read -e -p "是否更改本机IP？(1/0) > " res
-      [ "$res" = 1 ] && config_ip_dns
-      config_base
-      # update_shell
-      install_debian
-      download_sps
-      install_clash
-      install_clashmeta
-      install_mosdns
-      install_subconverter
-      install_adguardhome
-      install_nftables_cn
-      install_cron
-      echo "version ${sh_ver}" >> ${auto_dir}/version
-      echo -----------------------------------------------
-      echo -e "\033[30;46mAutoClash 安装成功 版本:${sh_ver}${end}"
-      echo -e "启动命令:${red}autoclash${end}"
-      echo -----------------------------------------------
-      echo -e "Clash控制面板:${lightblue}http://${local_ip}:9090/ui/${end}"
-      echo -e "Clash配置文件:${green}${yaml}${end}"
-      echo -----------------------------------------------
-      echo -e "AdGuardHome面板:${lightblue}http://${local_ip}:3000${end}"
-      echo -e "用户名和密码:${red}autoclash${end}"
-      echo -----------------------------------------------
-      reboot_show_menu
-    fi  
+    echo -----------------------------------------------    
+    echo -e "${green}欢迎安装AutoClash${end}"
+    check_disk_status
+    check_ccfg
+    read -e -p "是否更改本机IP？(1/0) > " res
+    [ "$res" = 1 ] && config_ip_dns
+    # config_url_cdn
+    config_auto_download
+    source $ccfg
+    config_base
+    # update_shell
+    install_debian
+    download_sps
+    install_clash
+    install_clashmeta
+    install_mosdns
+    install_subconverter
+    install_adguardhome
+    install_nftables_cn
+    install_cron
+    echo "version ${sh_ver}" >> ${auto_dir}/version
+    echo -----------------------------------------------
+    echo -e "\033[30;46mAutoClash 安装成功 版本:${sh_ver}${end}"
+    echo -e "启动命令:${red}autoclash${end}"
+    echo -----------------------------------------------
+    echo -e "Clash控制面板:${lightblue}http://${local_ip}:${db_port}/ui/${end}"
+    echo -e "Clash配置文件:${green}${yaml}${end}"
+    echo -----------------------------------------------
+    echo -e "AdGuardHome面板:${lightblue}http://${local_ip}:3000${end}"
+    echo -e "用户名和密码:${red}autoclash${end}"
+    echo -----------------------------------------------
+    reboot_show_menu
 }
 
 getipv4(){
@@ -1710,16 +1796,9 @@ checkrestart(){
 restart_clash() {
     echo -----------------------------------------------
     source ${sps_dir}/start.sh modify_yaml
-    sleep 1
-    # source $ccfg
-    # if [ "$clashcore" = 'clashpre' ];then
-    #   set_clashpre_service
-    # else
-    #   set_clashmeta_service
-    # fi
-    # systemctl daemon-reload >> /tmp/autoclash_setup.log 2>&1
-    systemctl restart clash.service >> /dev/null 2>&1
     sleep 2
+    systemctl restart clash.service >> /dev/null 2>&1
+    sleep 1
     check_clash_status
     if [[ $? == 0 ]]; then
     while true; do
@@ -1865,7 +1944,6 @@ getudp(){
 }
 
 linkconfig(){
-  source $ccfg
   echo -----------------------------------------------
   echo "1  代理集meta版:   仅限META核心"
   echo "2  代理集pre版:    通用,需手动修改"
@@ -1878,7 +1956,7 @@ linkconfig(){
   echo -----------------------------------------------
   read -e -p "请输入对应数字 > " num
   if [ "$num" = 1 ];then
-    webget2 /tmp/clash_config_$USER.yaml ${url_cdn}"https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/clash/config-meta.yaml"
+    webget2 /tmp/clash_config_$USER.yaml ${url_cdn}"https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/file/config-meta.yaml"
     sed -i '/clashcore=*/'d $ccfg
     setconfig clashcore clashmeta
     # set_clashmeta_service
@@ -1887,14 +1965,14 @@ linkconfig(){
     source ${sps_dir}/start.sh checkyaml
     restart_clash
     echo -e "${green}Clash代理集配置文件:${yaml}${end}"
-    echo -e "Clash控制面板:${lightblue}http://${local_ip}:9090/ui/${end}"
+    echo -e "Clash控制面板:${lightblue}http://${local_ip}:${db_port}/ui/${end}"
   elif [ "$num" = 2 ];then
-    webget2 /tmp/clash_config_$USER.yaml ${url_cdn}"https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/clash/config-pre.yaml"
+    webget2 /tmp/clash_config_$USER.yaml ${url_cdn}"https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/file/config-pre.yaml"
     source ${sps_dir}/start.sh checkyaml
     # set_clashpre_service
     restart_clash
     echo -e "${green}Clash代理集配置文件:${yaml}${end}"
-    echo -e "Clash控制面板:${lightblue}http://${local_ip}:9090/ui/${end}"
+    echo -e "Clash控制面板:${lightblue}http://${local_ip}:${db_port}/ui/${end}"
   elif [ "$num" = 3 ];then
     if [ -f "${auto_dir}"/config.yaml ];then
       cp -r  ${auto_dir}/config.yaml /tmp/clash_config_$USER.yaml
@@ -1932,7 +2010,6 @@ linkconfig(){
 }
 
 getlink(){
-    source $ccfg
     myurl=$(cat $sub_dir/profiles/formyairport.ini | grep url| cut -d'=' --complement -f1)
     echo -----------------------------------------------
     echo -e "\033[33m检测到已记录的链接内容：\033[0m"
@@ -2007,7 +2084,7 @@ keepyaml(){
             sleep 3
           done
           echo -e "${green}Clash服务启动成功!${end}"
-          echo -e "Clash控制面板:${lightblue}http://${local_ip}:9090/ui/${end}"
+          echo -e "Clash控制面板:${lightblue}http://${local_ip}:${db_port}/ui/${end}"
           echo -----------------------------------------------
           before_show_menu
         fi
@@ -2173,7 +2250,6 @@ clashcron(){
 }
 
 clash_getconfig(){
-    source $ccfg
     [ -z "$clashcore" ] && clashcore=clashpre
     PID=$(pidof clash)
     if [ -n "$PID" ];then
@@ -2225,14 +2301,20 @@ subconverter_getconfig(){
 }
 
 adguardhome_getconfig(){
+    source $ccfg
     PID=$(pidof AdGuardHome)
     if [ -n "$PID" ];then
       run="${green}已运行${end}"
       VmRSS=$(cat /proc/$PID/status|grep -w VmRSS|awk '{print $2,$3}')
       echo -e "AdGuardHome   "$run",内存占用:${blue}"$VmRSS"${end}"
     else
-      run="${red}没有运行${end}"
-      echo -e "AdGuardHome   "$run""
+      if [ "$adg_home" != "已开启" ];then
+        run="${red}未启用${end}"
+        echo -e "AdGuardHome   "$run""
+      else
+        run="${red}没有运行${end}"
+        echo -e "AdGuardHome   "$run""
+      fi
     fi
 }
 
@@ -2248,14 +2330,14 @@ getconfig2(){
     mosdns_getconfig
     subconverter_getconfig
     adguardhome_getconfig
-    # echo -e "Clash模式:${lightblue}$redir_mod${end}"
-    echo -e "Clash控制面板:${lightblue}http://${local_ip}:9090/ui/${end}"
+    echo -e "Clash控制面板:${lightblue}http://${local_ip}:${db_port}/ui/${end}"
     echo -e "AdGuardHome面板:${lightblue}http://${local_ip}:3000${end}"
     echo -----------------------------------------------
 }
 
 show_menu() {
     getconfig2
+    source $ccfg
     echo -e "1. ${green}重启 ${end}Clash"
     echo -e "2. ${green}重启 ${end}Mosdns"
     echo -e "3. ${green}重启 ${end}Subconverter"
@@ -2312,12 +2394,6 @@ show_menu() {
 
 clashcfg() {
     source $ccfg
-    [ -z "$clashcore" ] && clashcore=clashpre
-    [ -z "$redir_mod" ] && redir_mod=混合模式
-    [ -z "$dns_mod" ] && dns_mod=fake-ip
-    [ -z "$sniffer" ] && sniffer=已开启
-    [ -z "$mix_port" ] && mix_port=7891
-    [ -z "$mode" ] && mode=Rule
     if [ "$clashcore" = clashpre ];then
       showcore=Clash.Premium
     elif [ "$clashcore" = clashmeta ];then
@@ -2445,6 +2521,7 @@ set_mix_port(){
 }
 
 set_sniffer() {
+    source $ccfg
     echo -----------------------------------------------
     if [ "$sniffer" = "未启用" ];then
       sniffer=已开启
@@ -2480,18 +2557,16 @@ set_clash_core() {
     echo -----------------------------------------------
     read -e -p "请输入对应数字 > " num
     if [ "$num" = 1 ];then
-      sed -i '/clashcore=*/'d $ccfg
+      # sed -i '/clashcore=*/'d $ccfg
       setconfig clashcore clashpre
       rm -rf $bindir/clash
       cp -r ${clashpre_bin} ${bindir}/clash
-      # set_clashpre_service
       clashcfg
     elif [ "$num" = 2 ];then
-      sed -i '/clashcore=*/'d $ccfg
+      # sed -i '/clashcore=*/'d $ccfg
       setconfig clashcore clashmeta
       rm -rf $bindir/clash
       cp -r ${clashmeta_bin} ${bindir}/clash
-      # set_clashmeta_service
       clashcfg
     elif [ "$num" = 0 ];then
       clashcfg
@@ -2512,19 +2587,19 @@ set_redir_mod() {
     echo -----------------------------------------------
     read -e -p "请输入对应数字 > " num
     if [ "$num" = 1 ];then
-      sed -i '/redir_mod=*/'d $ccfg
+      # sed -i '/redir_mod=*/'d $ccfg
       setconfig redir_mod Redir模式
       clashcfg
     elif [ "$num" = 2 ];then
-      sed -i '/redir_mod=*/'d $ccfg
+      # sed -i '/redir_mod=*/'d $ccfg
       setconfig redir_mod 混合模式
       clashcfg
     elif [ "$num" = 3 ];then
-      sed -i '/redir_mod=*/'d $ccfg
+      # sed -i '/redir_mod=*/'d $ccfg
       setconfig redir_mod Tun模式
       clashcfg
     elif [ "$num" = 4 ];then
-      sed -i '/redir_mod=*/'d $ccfg
+      # sed -i '/redir_mod=*/'d $ccfg
       setconfig redir_mod TProxy模式
       clashcfg
     elif [ "$num" = 0 ];then
@@ -2561,6 +2636,7 @@ set_dns_mod() {
 
 setup_menu() {
     getipv4
+    source $ccfg
     echo -----------------------------------------------
     echo -e "\033[30;43m欢迎使用AutoClash功能设置菜单${end}"
     echo -----------------------------------------------
@@ -2569,18 +2645,28 @@ setup_menu() {
     echo -e "${yellow}密码:${end}        autoclash"
     echo -----------------------------------------------
     echo -e "1. ${green}修改 ${end}本机地址:          ${lightblue}${ipv4}${end}"
-    echo -e "2. ${green}修改 ${end}代理地址:          ${lightblue}$url_cdn${end}"
+    echo -e "2. ${green}修改 ${end}下载地址:          ${lightblue}$auto_download${end}"
+    if [ "$auto_download" != "AutoClash库" ];then
+      echo -e "3. ${green}修改 ${end}代理地址:          ${lightblue}$url_cdn${end}"
+    fi
+    # echo -e "4. ${green}启用 ${end}AdGuardHome:       ${lightblue}$adg_home${end}"
     echo -----------------------------------------------
     echo -e "0. 返回上级菜单"
     echo -----------------------------------------------
-    echo && read -e -p "请输入选择 [1-2]: " num
+    echo && read -e -p "请输入选择 [1-3]: " num
     case "${num}" in
       1)  config_ip_dns
           reboot_show_menu 
     ;;
-      2)  config_url_cdn
-          show_menu
+      2)  config_auto_download
+          setup_menu
     ;;
+      3)  config_url_cdn
+          setup_menu
+    ;;
+    #   4)  set_adg_home
+    #       setup_menu
+    # ;;
       0)  show_menu
     ;;
       *)  errornum
@@ -2589,24 +2675,49 @@ setup_menu() {
     esac
 }
 
+set_adg_home() {
+    echo -----------------------------------------------
+    if [ "$adg_home" = "未启用" ];then
+      adg_home=已开启
+    else
+      adg_home=未启用
+    fi
+    setconfig adg_home $adg_home
+    echo -e "\033[32m设置成功！\033[0m"
+    if [ "$adg_home" != "已开启" ];then
+      systemctl stop adguardhome.service >> /dev/null 2>&1
+      rm -rf /etc/systemd/system/adguardhome.service
+      sed -i 's/5351/53/g' ${mosdns_dir}/config.yaml
+      systemctl daemon-reload >> /dev/null 2>&1
+      systemctl restart mosdns.service >> /dev/null 2>&1
+    else
+      set_adguardhome_service
+      systemctl daemon-reload >> /dev/null 2>&1
+      systemctl start adguardhome.service >> /tmp/autoclash_setup.log 2>&1
+      systemctl enable adguardhome >> /tmp/autoclash_setup.log 2>&1
+      sed -i 's/53/5351/g' ${mosdns_dir}/config.yaml
+      systemctl restart mosdns.service >> /dev/null 2>&1
+    fi
+}
+
 update_menu() {
     echo -e "${green}正在检查更新...${end}"
     rm -rf ${auto_dir}/version
     cat << EOF > ${auto_dir}/version
-version 
-clashpre_v 
-clashmeta_v 
-mosdns_v 
-subconverter_v 
-adguardhome_v 
+version=
+clashpre_v=
+clashmeta_v=
+mosdns_v=
+subconverter_v=
+adguardhome_v=
 EOF
     check_ver
-    new_clashpre_version=$(cat ${auto_dir}/version  | grep clashpre_v | awk '{print $2}'| cut -d'-' -f1)
-    new_clashmeta_version=$(cat ${auto_dir}/version  | grep clashmeta_v | awk '{print $2}'| cut -d'-' -f1)
-    new_mosdns_version=$(cat ${auto_dir}/version  | grep mosdns_v | awk '{print $2}'| cut -d'-' -f1)
-    new_subconverter_version=$(cat ${auto_dir}/version  | grep subconverter_v | awk '{print $2}'| cut -d'-' -f1)
-    new_adguardhome_version=$(cat ${auto_dir}/version  | grep adguardhome_v | awk '{print $2}'| cut -d'-' -f1)
-    new_autoclash_version=$(cat ${auto_dir}/version  | grep version | awk '{print $2}'| cut -d'-' -f1)
+    new_clashpre_version=$(cat ${auto_dir}/version  | grep clashpre_v | awk -F'=' '{ print $2 }')
+    new_clashmeta_version=$(cat ${auto_dir}/version  | grep clashmeta_v | awk -F'=' '{ print $2 }')
+    new_mosdns_version=$(cat ${auto_dir}/version  | grep mosdns_v | awk -F'=' '{ print $2 }')
+    new_subconverter_version=$(cat ${auto_dir}/version  | grep subconverter_v | awk -F'=' '{ print $2 }')
+    new_adguardhome_version=$(cat ${auto_dir}/version  | grep adguardhome_v | awk -F'=' '{ print $2 }')
+    new_autoclash_version=$(cat ${auto_dir}/version  | grep -oE 'version=.*' | awk -F'=' '{ print $2 }')
     echo -----------------------------------------------
     echo -e "\033[30;43m欢迎使用更新/卸载功能${end}"
     echo -----------------------------------------------
@@ -2614,7 +2725,7 @@ EOF
     echo -e "2. ${green}更新 ${end}Clash.Premium: ${yellow}$(${clashpre_bin} -v | awk '{print $2}')${end} >  ${lightblue}${new_clashpre_version}${end}"
     echo -e "3. ${green}更新 ${end}Clash.Meta:    ${yellow}$(${clashmeta_bin} -v | awk '{print $3}')${end}    >  ${lightblue}${new_clashmeta_version}${end}"
     echo -e "4. ${green}更新 ${end}Mosdns:        ${yellow}$(${mosdns_bin} version | awk '{print $1}'| cut -d'-' -f1)${end}     >  ${lightblue}${new_mosdns_version}${end}"
-    echo -e "5. ${green}更新 ${end}Subconverter   ${yellow}v$(cat ${subconverter_version_file})${end}     >  ${lightblue}${new_subconverter_version}${end}" 
+    echo -e "5. ${green}更新 ${end}Subconverter   ${yellow}$(cat ${subconverter_version_file})${end}      >  ${lightblue}${new_subconverter_version}${end}" 
     echo -e "6. ${green}更新 ${end}AdGuardHome    ${yellow}$(cat ${adguardhome_version_file})${end}  >  ${lightblue}${new_adguardhome_version}${end}" 
     echo -e "7. ${green}更新 ${end}Mosdns/AdGuardHome配置文件"
     echo -e "8. ${green}更新 ${end}Dashboard/Yacd面板"
@@ -2625,6 +2736,8 @@ EOF
     echo -e "0. 返回上级菜单"
     echo -----------------------------------------------
     echo && read -e -p "请输入选择 [1-10]: " num
+
+
 
     case "${num}" in
       1)  update_shell_y
@@ -2707,7 +2820,7 @@ uninstall() {
     rm -rf ${sps_dir}
 
     rm -rf ${auto_dir}/version
-    rm -rf ${auto_dir}
+    rm -rf ${autobin_dir}/autoclash
 
     rm -rf $ccfg
 
@@ -2753,9 +2866,7 @@ if [[ $# > 0 ]]; then
       "install_ping") update_shell &&install_cron 0
     ;;                  
       "check_ver") check_ver 0
-    ;;              
-      "update_config") update_config 0
-    ;;                   
+    ;;                    
       "update") update_shell 0
     ;;
       "update_y") update_shell_y 0
@@ -2763,6 +2874,8 @@ if [[ $# > 0 ]]; then
       "uninstall") uninstall 0
     ;;   
       "get_yaml") get_yaml 0
+    ;;
+      "install_subconverter") install_subconverter 0
     ;;
       *) show_usage
     ;;
