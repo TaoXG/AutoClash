@@ -1022,10 +1022,6 @@ install_subconverter() {
       mkdir /tmp/subconverter
     fi
 
-    if [ ! -d "${sub_dir}" ]; then
-      mkdir ${sub_dir}
-    fi 
-
     echo -e "${green}Get Subconverter release information.${end}"
     webget2 /tmp/subconverter/subconverter_release.json ${subconverter_url}
     if [ ! -f "/tmp/subconverter/subconverter_release.json" ]; then
