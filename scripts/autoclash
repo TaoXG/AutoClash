@@ -525,7 +525,7 @@ download_clash_yacd () {
 
 download_clash_Country () {
     if [ "$auto_download" = "AutoClash库" ];then
-      clash_Country_download_url="https://git.168828.xyz/root/AutoClash/raw/branch/main/bin/cn_mini.mmdb"
+      clash_Country_download_url="https://git.168828.xyz/root/AutoClash/raw/branch/main/bin/Country.mmdb"
     else
       clash_Country_download_url="https://raw.githubusercontent.com/alecthw/mmdb_china_ip_list/release/Country.mmdb"
     fi
