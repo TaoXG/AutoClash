@@ -1342,9 +1342,9 @@ update_shell_y() {
     fi
     download_sps
     echo -e "`date +%F\ %T` AutoClash v${new_shell_ver} 下载成功!" >> /tmp/update.log  2>&1
-    rm -rf ${auto_dir}   
-    mv /tmp/autoclash ${auto_dir}  >> /dev/null 2>&1
-    chmod +x ${auto_dir} >> /dev/null 2>&1
+    rm -rf ${auto_dir}/autoclash   
+    mv /tmp/autoclash ${auto_dir}/autoclash  >> /dev/null 2>&1
+    chmod +x ${auto_dir}/autoclash >> /dev/null 2>&1
     echo -e "${green}AutoClash v${new_shell_ver}强制升级成功，请重新运行脚本!${end}" && exit 0
 }
 
@@ -1366,9 +1366,9 @@ update_shell() {
       fi
       download_sps
       echo -e "`date +%F\ %T` AutoClash v${new_shell_ver} 下载成功!" >> /tmp/update.log  2>&1
-      rm -rf ${auto_dir}   
-      mv /tmp/autoclash ${auto_dir}  >> /dev/null 2>&1
-      chmod +x ${auto_dir} >> /dev/null 2>&1
+      rm -rf ${auto_dir}/autoclash   
+      mv /tmp/autoclash ${auto_dir}/autoclash  >> /dev/null 2>&1
+      chmod +x ${auto_dir}/autoclash >> /dev/null 2>&1
       echo -e "${green}AutoClash v${new_shell_ver}升级成功，请重新运行脚本!${end}" && exit 0
     fi
 }
