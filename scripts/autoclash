@@ -428,8 +428,8 @@ install_clash() {
       mkdir ${clashdir}
     fi 
 
-    if [ "$auto_download" = "AutoClash库" ];then
-      clash_premium_download_url="https://git.168828.xyz/root/AutoClash/raw/branch/main/bin/clash_pre/clash-${cpucore}"
+    if [ "$update_git" != "原作者GitHub" ];then
+      clash_premium_download_url="${update_url}/bin/clash_pre/clash-${cpucore}"
       echo -e "${green}Start download Clash Premium from ${clash_premium_download_url}${end}" 
       webget2 /tmp/clash/clash ${url_cdn}${clash_premium_download_url}
     else
@@ -483,8 +483,8 @@ download_clash_dashboard () {
       mkdir ${clashdir}/ui
     fi 
 
-    if [ "$auto_download" = "AutoClash库" ];then
-      clash_dashboard_download_url="https://git.168828.xyz/root/AutoClash/raw/branch/main/bin/dashboard.zip"
+    if [ "$update_git" != "原作者GitHub" ];then
+      clash_dashboard_download_url="${update_url}/bin/dashboard.zip"
     else
       clash_dashboard_download_url="https://github.com/Dreamacro/clash-dashboard/archive/gh-pages.zip"
     fi
@@ -505,8 +505,8 @@ download_clash_yacd () {
     if [ ! -d "${clashdir}/ui" ]; then
       mkdir ${clashdir}/ui
     fi 
-    if [ "$auto_download" = "AutoClash库" ];then
-      clash_yacd_download_url="https://git.168828.xyz/root/AutoClash/raw/branch/main/bin/yacd.zip"
+    if [ "$update_git" != "原作者GitHub" ];then
+      clash_yacd_download_url="${update_url}/bin/yacd.zip"
     else
       clash_yacd_download_url="https://github.com/haishanh/yacd/archive/gh-pages.zip"
     fi
@@ -524,8 +524,8 @@ download_clash_yacd () {
 }
 
 download_clash_Country () {
-    if [ "$auto_download" = "AutoClash库" ];then
-      clash_Country_download_url="https://git.168828.xyz/root/AutoClash/raw/branch/main/bin/Country.mmdb"
+    if [ "$update_git" != "原作者GitHub" ];then
+      clash_Country_download_url="${update_url}/bin/Country.mmdb"
     else
       clash_Country_download_url="https://raw.githubusercontent.com/alecthw/mmdb_china_ip_list/release/Country.mmdb"
     fi
@@ -590,8 +590,8 @@ update_clash_y() {
     [ -f ${autobin_dir}/clash.old ] && rm ${autobin_dir}/clash.old
     [ -f ${clashpre_bin} ] && mv ${clashpre_bin} ${autobin_dir}/clash.old
 
-    if [ "$auto_download" = "AutoClash库" ];then
-      remote_clash_download_url="https://git.168828.xyz/root/AutoClash/raw/branch/main/bin/clash_pre/clash-${cpucore}"
+    if [ "$update_git" != "原作者GitHub" ];then
+      remote_clash_download_url="${update_url}/bin/clash_pre/clash-${cpucore}"
       echo -e "${green}Start download Clash Premium from ${remote_clash_download_url}${end}" 
       webget2 ${clashpre_bin} ${url_cdn}${remote_clash_download_url}
     else
@@ -638,8 +638,8 @@ install_clashmeta () {
 
 
 
-    if [ "$auto_download" = "AutoClash库" ];then
-      clash_meta_download_url="https://git.168828.xyz/root/AutoClash/raw/branch/main/bin/clash_meta/clash-${cpucore}"
+    if [ "$update_git" != "原作者GitHub" ];then
+      clash_meta_download_url="${update_url}/bin/clash_meta/clash-${cpucore}"
       echo -e "${green}Start download Clash Meta from ${clash_meta_download_url}${end}" 
       webget2 /tmp/clashmeta/clashmeta ${url_cdn}${clash_meta_download_url}
     else
@@ -736,8 +736,8 @@ update_clashmeta_y() {
     [ -f ${autobin_dir}/clashmeta.old ] && rm ${autobin_dir}/clashmeta.old
     [ -f ${clashmeta_bin} ] && mv ${clashmeta_bin} ${autobin_dir}/clashmeta.old
 
-    if [ "$auto_download" = "AutoClash库" ];then
-      remote_clashmeta_download_url="https://git.168828.xyz/root/AutoClash/raw/branch/main/bin/clash_meta/clash-${cpucore}"
+    if [ "$update_git" != "原作者GitHub" ];then
+      remote_clashmeta_download_url="${update_url}/bin/clash_meta/clash-${cpucore}"
       echo -e "${green}Start download Clash Meta from ${remote_clashmeta_download_url}${end}" 
       webget2 ${clashmeta_bin} ${url_cdn}${remote_clashmeta_download_url}
     else
@@ -775,8 +775,8 @@ download_clashmeta_yacd () {
       mkdir ${bindir}/ui
     fi
 
-    if [ "$auto_download" = "AutoClash库" ];then
-      clashmeta_yacd_download_url="https://git.168828.xyz/root/AutoClash/raw/branch/main/bin/yacd_meta.zip"
+    if [ "$update_git" != "原作者GitHub" ];then
+      clashmeta_yacd_download_url="${update_url}/bin/yacd_meta.zip"
     else
       clashmeta_yacd_download_url="https://github.com/MetaCubeX/Yacd-meta/archive/gh-pages.zip"
     fi
@@ -798,8 +798,8 @@ download_clashmeta_dashboard () {
       mkdir ${bindir}/ui
     fi 
 
-    if [ "$auto_download" = "AutoClash库" ];then
-      clashmeta_dashboard_download_url="https://git.168828.xyz/root/AutoClash/raw/branch/main/bin/dashboard_meta.zip"
+    if [ "$update_git" != "原作者GitHub" ];then
+      clashmeta_dashboard_download_url="${update_url}/bin/dashboard_meta.zip"
     else
       clashmeta_dashboard_download_url="https://github.com/MetaCubeX/Razord-meta/archive/gh-pages.zip"
     fi
@@ -828,8 +828,8 @@ install_mosdns() {
       mkdir ${mosdns_dir}
     fi 
 
-    if [ "$auto_download" = "AutoClash库" ];then
-      mosdns_download_url="https://git.168828.xyz/root/AutoClash/raw/branch/main/bin/mosdns/mosdns-${cpucore}"
+    if [ "$update_git" != "原作者GitHub" ];then
+      mosdns_download_url="${update_url}/bin/mosdns/mosdns-${cpucore}"
       echo -e "${green}Start download Mosdns from ${mosdns_download_url}${end}" 
       webget2 /tmp/mosdns/mosdns ${url_cdn}${mosdns_download_url}
     else
@@ -875,8 +875,8 @@ install_mosdns() {
 }
 
 download_mosdns_config () {
-    if [ "$auto_download" = "AutoClash库" ];then
-      config_download_url="https://git.168828.xyz/root/AutoClash/raw/branch/main/file/config-mosdns.yaml"
+    if [ "$update_git" != "原作者GitHub" ];then
+      config_download_url="${update_url}/file/config-mosdns.yaml"
     else
       config_download_url="https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/file/config-mosdns.yaml"
     fi
@@ -893,8 +893,8 @@ download_mosdns_config () {
 
 
 download_geoip () {
-    if [ "$auto_download" = "AutoClash库" ];then
-      geoip_download_url="https://git.168828.xyz/root/AutoClash/raw/branch/main/bin/geoip.dat"
+    if [ "$update_git" != "原作者GitHub" ];then
+      geoip_download_url="${update_url}/bin/geoip.dat"
     else
       geoip_download_url="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
     fi
@@ -911,8 +911,8 @@ download_geoip () {
 }
 
 download_geosite () {
-    if [ "$auto_download" = "AutoClash库" ];then
-      geosite_download_url="https://git.168828.xyz/root/AutoClash/raw/branch/main/bin/geosite.dat"
+    if [ "$update_git" != "原作者GitHub" ];then
+      geosite_download_url="${update_url}/bin/geosite.dat"
     else
       geosite_download_url="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
     fi
@@ -980,8 +980,8 @@ update_mosdns_y() {
     [ -f ${autobin_dir}/mosdns.old ] && rm ${autobin_dir}/mosdns.old
     [ -f ${mosdns_bin} ] && mv ${mosdns_bin} ${autobin_dir}/mosdns.old
 
-    if [ "$auto_download" = "AutoClash库" ];then
-      remote_mosdns_download_url="https://git.168828.xyz/root/AutoClash/raw/branch/main/bin/mosdns/mosdns-${cpucore}"
+    if [ "$update_git" != "原作者GitHub" ];then
+      remote_mosdns_download_url="${update_url}/bin/mosdns/mosdns-${cpucore}"
       echo -e "${green}Start download Mosdns from ${remote_mosdns_download_url}${end}" 
       webget2 ${mosdns_bin} ${url_cdn}${remote_mosdns_download_url}
     else
@@ -1023,8 +1023,8 @@ install_subconverter() {
       mkdir /tmp/subconverter
     fi
 
-    if [ "$auto_download" = "AutoClash库" ];then
-      subconverter_download_url="https://git.168828.xyz/root/AutoClash/raw/branch/main/bin/subconverter_alpha/subconverter-${cpucore}.tar.gz"
+    if [ "$update_git" != "原作者GitHub" ];then
+      subconverter_download_url="${update_url}/bin/subconverter_alpha/subconverter-${cpucore}.tar.gz"
     else
       echo -e "${green}Get Subconverter release information.${end}"
       webget2 /tmp/subconverter/subconverter_release.json ${subconverter_url}
@@ -1055,7 +1055,7 @@ install_subconverter() {
       echo 0 > ${subconverter_version_file}
     fi
 
-    if [ "$auto_download" = "AutoClash库" ];then
+    if [ "$update_git" != "原作者GitHub" ];then
       remote_subconverter_version=$(curl -sL https://api.github.com/repos/MetaCubeX/subconverter/releases/latest | grep '"tag_name": ' | sed -E 's/.*"([^"]+)".*/\1/' | head -n 1)
     else
       remote_subconverter_version=$(jq '.tag_name' /tmp/subconverter/subconverter_release.json | tr -d '"' | awk '{print $1}'| cut -d'-' -f1)
@@ -1081,7 +1081,7 @@ fdn=true
 emoji=true
 append_info=false
 list=false
-exclude=(流量|本站|官网|过期|群|IPV6|到期时间|过期时间|产品名称|先购买套餐|流量消耗|永久|更新订阅|倒卖|回国|校园|游戏|教育)
+exclude=(流量|本站|官网|过期|群|IPV6|到期|过期时间|产品名称|先购买套餐|流量消耗|永久|更新订阅|倒卖|回国|校园|游戏|教育|重置)
 rename=云\s-\s@
 config=${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/subconverter/AutoClash.ini
 expand=false
@@ -1101,7 +1101,7 @@ update_subconverter_y() {
 
     [ -f /tmp/subconverter_release.json ] && rm /tmp/subconverter_release.json
 
-    if [ "$auto_download" = "AutoClash库" ];then
+    if [ "$update_git" != "原作者GitHub" ];then
       webget2 /tmp/subconverter_release.json https://api.github.com/repos/MetaCubeX/subconverter/releases/latest echooff
     else
       webget2 /tmp/subconverter_release.json https://api.github.com/repos/tindy2013/subconverter/releases/latest echooff
@@ -1138,8 +1138,8 @@ update_subconverter_y() {
     done < /tmp/subconverter_release_assets
     rm /tmp/subconverter_release_assets
 
-    if [ "$auto_download" = "AutoClash库" ];then
-      remote_subconverter_download_url="https://git.168828.xyz/root/AutoClash/raw/branch/main/bin/subconverter_alpha/subconverter-${cpucore}.tar.gz"
+    if [ "$update_git" != "原作者GitHub" ];then
+      remote_subconverter_download_url="${update_url}/bin/subconverter_alpha/subconverter-${cpucore}.tar.gz"
     else
       remote_subconverter_download_url=$(jq ".assets[${i}].browser_download_url" /tmp/subconverter_release.json | tr -d '"' | grep -m1 ${cpucore3})
     fi
@@ -1186,8 +1186,8 @@ install_adguardhome() {
       mkdir ${adg_dir}
     fi 
 
-    if [ "$auto_download" = "AutoClash库" ];then
-      adguardhome_download_url="https://git.168828.xyz/root/AutoClash/raw/branch/main/bin/adguardhome/AdGuardHome-${cpucore}"
+    if [ "$update_git" != "原作者GitHub" ];then
+      adguardhome_download_url="${update_url}/bin/adguardhome/AdGuardHome-${cpucore}"
       echo -e "${green}Start download AdGuardHome from ${adguardhome_download_url}${end}" 
       webget2 /tmp/adguardhome/AdGuardHome ${url_cdn}${adguardhome_download_url}
       rm -rf ${adg_bin}
@@ -1231,8 +1231,8 @@ install_adguardhome() {
 }
 
 download_adguardhome_config () {
-    if [ "$auto_download" = "AutoClash库" ];then
-      config_download_url="https://git.168828.xyz/root/AutoClash/raw/branch/main/file/AdGuardHome.yaml"
+    if [ "$update_git" != "原作者GitHub" ];then
+      config_download_url="${update_url}/file/AdGuardHome.yaml"
     else
       config_download_url="https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/file/AdGuardHome.yaml"
     fi
@@ -1266,7 +1266,7 @@ update_adguardhome_y() {
     if (verlt "${local_adguardhome_version}" "${remote_adguardhome_version}") then
       echo -e "${green}Found a new version of AdGuardHome${end}"
     else
-      echo -e "${green}AdGuardHome is up to date${end}"
+      echo -e "${green}AdGuardHome ${local_adguardhome_version} is up to date${end}"
       before_show_menu
     fi
 
@@ -1288,13 +1288,13 @@ update_adguardhome_y() {
     done < /tmp/adguardhome_release_assets
     rm /tmp/adguardhome_release_assets
 
-    if [ "$auto_download" = "AutoClash库" ];then
-      remote_adguardhome_download_url="https://git.168828.xyz/root/AutoClash/raw/branch/main/bin/adguardhome/AdGuardHome-${cpucore}"
+    if [ "$update_git" != "原作者GitHub" ];then
+      remote_adguardhome_download_url="${update_url}/bin/adguardhome/AdGuardHome-${cpucore}"
       echo -e "${green}Start download AdGuardHome from ${remote_adguardhome_download_url}${end}" 
       webget2 /tmp/AdGuardHome ${url_cdn}${remote_adguardhome_download_url}
       rm -rf ${adg_bin}
-      chmod +x ${adg_bin}
       mv /tmp/AdGuardHome ${adg_dir}
+      chmod +x ${adg_bin}
     else
       remote_adguardhome_download_url=$(jq ".assets[${i}].browser_download_url" /tmp/adguardhome_release.json | tr -d '"' | grep -m1 ${cpucore5})
       rm /tmp/adguardhome_release.json
@@ -1327,9 +1327,9 @@ update_adguardhome_y() {
 }
 
 update_shell_y() {
-    if [ "$auto_download" = "AutoClash库" ];then
-      new_shell_ver=$(wget -qO- ${url_cdn}https://git.168828.xyz/root/AutoClash/raw/branch/main/bin/version | grep version | awk -F'=' '{ print $2 }')
-      new_shell_auto=https://git.168828.xyz/root/AutoClash/raw/branch/main/scripts/autoclash
+    if [ "$update_git" != "原作者GitHub" ];then
+      new_shell_ver=$(wget -qO- ${url_cdn}${update_url}/bin/version | grep version | awk -F'=' '{ print $2 }')
+      new_shell_auto=${update_url}/scripts/autoclash
     else
       new_shell_ver=$(wget -qO- ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/bin/version | grep version | awk -F'=' '{ print $2 }')
       new_shell_auto=https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/scripts/autoclash
@@ -1349,9 +1349,9 @@ update_shell_y() {
 }
 
 update_shell() {
-    if [ "$auto_download" = "AutoClash库" ];then
-      new_shell_ver=$(wget -qO- ${url_cdn}https://git.168828.xyz/root/AutoClash/raw/branch/main/bin/version | grep version | awk -F'=' '{ print $2 }')
-      new_shell_auto=https://git.168828.xyz/root/AutoClash/raw/branch/main/scripts/autoclash
+    if [ "$update_git" != "原作者GitHub" ];then
+      new_shell_ver=$(wget -qO- ${url_cdn}${update_url}/bin/version | grep version | awk -F'=' '{ print $2 }')
+      new_shell_auto=${update_url}/scripts/autoclash
     else
       new_shell_ver=$(wget -qO- ${url_cdn}https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/bin/version | grep version | awk -F'=' '{ print $2 }')
       new_shell_auto=https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/scripts/autoclash
@@ -1376,8 +1376,8 @@ update_shell() {
 download_sps() {
     mkdir -p ${sps_dir}
 
-    if [ "$auto_download" = "AutoClash库" ];then
-      rules_download_url="https://git.168828.xyz/root/AutoClash/raw/branch/main/scripts/start.sh"
+    if [ "$update_git" != "原作者GitHub" ];then
+      rules_download_url="${update_url}/scripts/start.sh"
     else
       rules_download_url="https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/scripts/start.sh"
     fi
@@ -1422,8 +1422,8 @@ download_cn_ip() {
       mkdir /tmp/nftables
     fi
 
-    if [ "$auto_download" = "AutoClash库" ];then
-      china_ip_list_download_url="https://git.168828.xyz/root/AutoClash/raw/branch/main/bin/china_ip_list.txt"
+    if [ "$update_git" != "原作者GitHub" ];then
+      china_ip_list_download_url="${update_url}/bin/china_ip_list.txt"
     else
       china_ip_list_download_url="https://raw.githubusercontent.com/17mon/china_ip_list/master/china_ip_list.txt"
     fi
@@ -1496,8 +1496,8 @@ check_adguardhome_ver() {
 }
 
 check_ver() {
-    if [ "$auto_download" = "AutoClash库" ];then
-      webget2 /${auto_dir}/version ${url_cdn}https://git.168828.xyz/root/AutoClash/raw/branch/main/bin/version echooff
+    if [ "$update_git" != "原作者GitHub" ];then
+      webget2 /${auto_dir}/version ${url_cdn}${update_url}/bin/version echooff
     else
       check_autoclash_ver
       check_clashpre_ver
@@ -1549,8 +1549,10 @@ check_ccfg() {
   if [ ! -f "$ccfg" ]; then
 cat << EOF > $ccfg
 #标识clash运行状态的文件，不明勿动！
-# auto_download:从autoclash服务器下载
-auto_download=AutoClash库
+# update_git:下载更新库
+update_git=AutoClash库下载-Gitea
+# update_url:autoclash库地址
+update_url=https://git.168828.xyz/root/AutoClash/raw/branch/main
 # authentication:设置Http/Sock5密码,格式必须是'用户名:密码'的形式，注意用小写冒号分隔！
 authentication=''
 # redir_port:redir透明代理端口
@@ -1570,7 +1572,7 @@ sniffer=已开启
 # raw_cdn:配置文件https://raw前添加代理
 raw_cdn=已开启
 # url_cdn:代理地址
-url_cdn='https://gh.168828.xyz/'
+url_cdn=''
 # clashcore:clash核心[clashpre,clashmeta]
 clashcore=clashpre
 # redir_mod:clash运行模式[混合模式,Redir模式,Tun模式,TProxy模式]
@@ -1614,23 +1616,31 @@ config_url_cdn(){
   fi
 }
 
-config_auto_download(){
+config_update_git(){
   echo -----------------------------------------------
-  echo 1  AutoClash库下载
-  echo 2  原作者GitHub下载
+  echo 1  AutoClash库下载-Gitea
+  echo 2  AutoClash库下载-CDN源
+  echo 3  原作者GitHub下载
   echo -----------------------------------------------
   read -e -p "请输入对应数字 > " num
   if [ "$num" = 1 ];then
     # sed -i '/url_cdn = */'d $ccfg
-    setconfig auto_download AutoClash库
+    setconfig update_git AutoClash库下载-Gitea
+    setconfig update_url "https://git.168828.xyz/root/AutoClash/raw/branch/main"
     setconfig url_cdn \'\'
   elif [ "$num" = 2 ];then
     # sed -i '/url_cdn = */'d $ccfg
-    setconfig auto_download 原作者GitHub
+    setconfig update_git AutoClash库下载-CDN源
+    setconfig update_url "https://fastly.jsdelivr.net/gh/gdfsnhsw/Autoclash@master"
+    setconfig url_cdn \'\'
+  elif [ "$num" = 3 ];then
+    # sed -i '/url_cdn = */'d $ccfg
+    setconfig update_git 原作者GitHub
+    setconfig update_url \'\'
     config_url_cdn
   else
     errornum
-    config_auto_download
+    config_update_git
   fi
 }
 
@@ -1674,7 +1684,7 @@ install() {
     check_ccfg
     read -e -p "是否更改本机IP？(1/0) > " res
     [ "$res" = 1 ] && config_ip_dns
-    config_auto_download
+    config_update_git
     source $ccfg
     config_base
     # update_shell
@@ -1917,8 +1927,8 @@ linkconfig(){
   echo -----------------------------------------------
   read -e -p "请输入对应数字 > " num
   if [ "$num" = 1 ];then
-    webget2 /tmp/clash_config_$USER.yaml "https://git.168828.xyz/root/AutoClash/raw/branch/main/file/config-meta.yaml"
-    sed -i '/clashcore=*/'d $ccfg
+    webget2 /tmp/clash_config_$USER.yaml ${url_cdn}"${update_url}/file/config-meta.yaml"
+    # sed -i '/clashcore=*/'d $ccfg
     setconfig clashcore clashmeta
     rm -rf $bindir/clash
     cp -r ${clashmeta_bin} ${bindir}/clash
@@ -1927,7 +1937,7 @@ linkconfig(){
     echo -e "${green}Clash代理集配置文件:${yaml}${end}"
     echo -e "Clash控制面板:${lightblue}http://${local_ip}:${db_port}/ui/${end}"
   elif [ "$num" = 2 ];then
-    webget2 /tmp/clash_config_$USER.yaml "https://git.168828.xyz/root/AutoClash/raw/branch/main/file/config-pre.yaml"
+    webget2 /tmp/clash_config_$USER.yaml ${url_cdn}"${update_url}/file/config-pre.yaml"
     source ${sps_dir}/start.sh checkyaml
     restart_clash
     echo -e "${green}Clash代理集配置文件:${yaml}${end}"
@@ -2603,10 +2613,10 @@ setup_menu() {
     echo -e "${yellow}用户名:${end}      autoclash"
     echo -e "${yellow}密码:${end}        autoclash"
     echo -----------------------------------------------
-    echo -e "1. ${green}修改 ${end}本机地址:          ${lightblue}${ipv4}${end}"
-    echo -e "2. ${green}修改 ${end}下载地址:          ${lightblue}$auto_download${end}"
-    if [ "$auto_download" != "AutoClash库" ];then
-      echo -e "3. ${green}修改 ${end}代理地址:          ${lightblue}$url_cdn${end}"
+    echo -e "1. ${green}修改 ${end}本机地址:       ${lightblue}${ipv4}${end}"
+    echo -e "2. ${green}修改 ${end}下载地址:       ${lightblue}$update_git${end}"
+    if [ "$update_git" = "原作者GitHub" ];then
+      echo -e "3. ${green}修改 ${end}代理地址:       ${lightblue}$url_cdn${end}"
     fi
     # echo -e "4. ${green}启用 ${end}AdGuardHome:       ${lightblue}$adg_home${end}"
     echo -----------------------------------------------
@@ -2617,7 +2627,7 @@ setup_menu() {
       1)  config_ip_dns
           reboot_show_menu 
     ;;
-      2)  config_auto_download
+      2)  config_update_git
           setup_menu
     ;;
       3)  config_url_cdn
