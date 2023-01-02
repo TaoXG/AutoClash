@@ -178,16 +178,16 @@ plugins:
           # 剩下的未知域名用 IP 分流，分流原理请参考 `fallback`的工作流程。
           # primary 从远程服务器获取应答，丢弃非本地 IP 的结果。
         - primary:                    # 主要流水线(独立的)
-            - _prefer_ipv4            # 可用让下游客户端支持双栈时优先使用 IPv4
-            - forward_remote          # 转发至远程服务器的插件
-            - if: "(response_has_local_ip) || (response_cname_akamai)"
+            - forward_local           # 转发至本地服务器的插件
+            - if: "(! response_has_local_ip) && [_response_valid_answer]"   # 不匹配本地 IP 的插件 && 应答包含有效的 ANSWER 记录(ANSWER 中有记录能与 QUESTION 对应)
               exec:
                 - _drop_response      # 丢弃已存在的应答
           # secondary 从本地服务器获取应答。
           secondary:                  # 次要流水线(独立的)
-            - forward_local           # 转发至本地服务器的插件
+            - _prefer_ipv4            # 可用让下游客户端支持双栈时优先使用 IPv4
+            - forward_remote          # 转发至远程服务器的插件
             - ttl_short
-            - if: "(! response_has_local_ip) && [_response_valid_answer]"   # 不匹配本地 IP 的插件 && 应答包含有效的 ANSWER 记录(ANSWER 中有记录能与 QUESTION 对应)
+            - if: "(response_has_local_ip) || (response_cname_akamai)"
               exec:
                 - _prefer_ipv4
                 - forward_easymosdns
