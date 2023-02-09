@@ -18,7 +18,7 @@ purpleb="\033[1;35m"
 lightblue="\033[0;36m"
 lightblueb="\033[1;36m"
 
-sh_ver="2.0.0"
+sh_ver="2.1.0"
 
 cpu=$(hostnamectl | grep Architecture: | awk '{print $2}')
 system=$(cat /etc/issue | awk '{print $1}')
@@ -398,13 +398,13 @@ install_debian() {
     rm -rf /etc/apt/sources.list.d/*
 
     cat << EOF > /etc/apt/sources.list
-deb http://mirrors.aliyun.com/debian $(cat /etc/os-release | grep VERSION= | cut -d '(' -f2 | cut -d ')' -f1) main
-deb http://mirrors.aliyun.com/debian-security $(cat /etc/os-release | grep VERSION= | cut -d '(' -f2 | cut -d ')' -f1)/updates main
-deb http://mirrors.aliyun.com/debian $(cat /etc/os-release | grep VERSION= | cut -d '(' -f2 | cut -d ')' -f1)-updates main
+deb https://mirrors.tuna.tsinghua.edu.cn/debian $(cat /etc/os-release | grep VERSION= | cut -d '(' -f2 | cut -d ')' -f1) main
+deb https://mirrors.tuna.tsinghua.edu.cn/debian-security $(cat /etc/os-release | grep VERSION= | cut -d '(' -f2 | cut -d ')' -f1)/updates main
+deb https://mirrors.tuna.tsinghua.edu.cn/debian $(cat /etc/os-release | grep VERSION= | cut -d '(' -f2 | cut -d ')' -f1)-updates main
 EOF
     echo -e "${green}升级系统,请稍候! 大概5-10分钟!${end}" 
     apt update >> /dev/null 2>&1
-    apt -y full-upgrade >> /dev/null 2>&1
+    # apt -y full-upgrade >> /dev/null 2>&1
     apt -y autoclean >> /dev/null 2>&1 
     echo -e "${green}系统升级完成!${end}"
 
@@ -676,6 +676,8 @@ install_clashmeta () {
 
     download_clashmeta_dashboard
     download_clashmeta_yacd
+    download_geoip
+    download_geosite 
 
     # set_clashmeta_service
     # systemctl daemon-reload >> /tmp/autoclash_setup.log 2>&1
@@ -816,6 +818,43 @@ download_clashmeta_dashboard () {
     rm -rf /tmp/dashboard-meta.zip
 }
 
+download_geoip () {
+    if [ "$update_git" != "原作者GitHub" ];then
+      geoip_download_url="${update_url}/bin/geoip.dat"
+    else
+      geoip_download_url="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
+    fi
+    echo -e "${green}Start download GeoIP.dat from ${geoip_download_url}${end}" 
+    webget2  /tmp/geoip.dat  ${url_cdn}${geoip_download_url}
+    if [ ! -f "/tmp/geoip.dat" ]; then
+      echo -e "${red}Failed to download GeoIP.dat${end}"
+      exit 1
+    fi
+    [ -f "${bindir}/GeoIP.dat" ] && rm -rf "${bindir}/GeoIP.dat"
+    mv /tmp/geoip.dat ${bindir}/GeoIP.dat
+    # [ -f "${mosdns_dir}/geoip.dat" ] && rm -rf "${mosdns_dir}/geoip.dat"
+    # cp -r "${bindir}/GeoIP.dat" "${mosdns_dir}/geoip.dat"
+}
+
+download_geosite () {
+    if [ "$update_git" != "原作者GitHub" ];then
+      geosite_download_url="${update_url}/bin/geosite.dat"
+    else
+      geosite_download_url="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
+    fi
+    echo -e "${green}Start download GeoSite.dat from ${geosite_download_url}${end}" 
+    webget2  /tmp/geosite.dat  ${url_cdn}${geosite_download_url}
+    if [ ! -f "/tmp/geosite.dat" ]; then
+      echo -e "${red}Failed to download GeoSite.dat${end}"
+      exit 1
+    fi
+    [ -f "${bindir}/GeoSite.dat" ] && rm -rf "${bindir}/GeoSite.dat"
+    mv /tmp/geosite.dat ${bindir}/GeoSite.dat
+    # [ -f "${mosdns_dir}/geosite.dat" ] && rm -rf "${mosdns_dir}/geosite.dat"
+    # cp -r "${bindir}/GeoSite.dat" "${mosdns_dir}/geosite.dat"
+}
+
+
 install_mosdns() {
     # Mosdns core
     mosdns_url="https://api.github.com/repos/IrineSistiana/mosdns/releases/latest"
@@ -864,8 +903,11 @@ install_mosdns() {
     rm -rf /tmp/mosdns
 
     download_mosdns_config
-    download_geoip
-    download_geosite    
+    download_direct_list
+    download_reject_list
+    download_CN_ip_cidr
+    # download_geoip
+    # download_geosite    
 
     set_mosdns_service
     systemctl daemon-reload >> /tmp/autoclash_setup.log 2>&1
@@ -891,42 +933,54 @@ download_mosdns_config () {
     fi
 }
 
-
-download_geoip () {
+download_direct_list () {
     if [ "$update_git" != "原作者GitHub" ];then
-      geoip_download_url="${update_url}/bin/geoip.dat"
+      direct_list_download_url="${update_url}/bin/direct-list.txt"
     else
-      geoip_download_url="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
+      direct_list_download_url="https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/direct-list.txt"
     fi
-    echo -e "${green}Start download GeoIP.dat from ${geoip_download_url}${end}" 
-    webget2  /tmp/geoip.dat  ${url_cdn}${geoip_download_url}
-    if [ ! -f "/tmp/geoip.dat" ]; then
-      echo -e "${red}Failed to download GeoIP.dat${end}"
+    echo -e "${green}Start download direct-list.txt from ${direct_list_download_url}${end}" 
+    webget2  /tmp/direct-list.txt  ${url_cdn}${direct_list_download_url}
+    if [ ! -f "/tmp/direct-list.txt" ]; then
+      echo -e "${red}Failed to download direct-list.txt${end}"
       exit 1
     fi
-    [ -f "${mosdns_dir}/geoip.dat" ] && rm -rf "${mosdns_dir}/geoip.dat"
-    mv /tmp/geoip.dat ${mosdns_dir}/geoip.dat
-    [ -f "${bindir}/GeoIP.dat" ] && rm -rf "${bindir}/GeoIP.dat"
-    cp -r "${mosdns_dir}/geoip.dat" "${bindir}/GeoIP.dat"
+    [ -f "${mosdns_dir}/direct-list.txt" ] && rm -rf "${mosdns_dir}/direct-list.txt"
+    mv /tmp/direct-list.txt ${mosdns_dir}/direct-list.txt
 }
 
-download_geosite () {
+download_reject_list () {
     if [ "$update_git" != "原作者GitHub" ];then
-      geosite_download_url="${update_url}/bin/geosite.dat"
+      reject_list_download_url="${update_url}/bin/reject-list.txt"
     else
-      geosite_download_url="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
+      reject_list_download_url="https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/reject-list.txt"
     fi
-    echo -e "${green}Start download GeoSite.dat from ${geosite_download_url}${end}" 
-    webget2  /tmp/geosite.dat  ${url_cdn}${geosite_download_url}
-    if [ ! -f "/tmp/geosite.dat" ]; then
-      echo -e "${red}Failed to download GeoSite.dat${end}"
+    echo -e "${green}Start download reject-list.txt from ${reject_list_download_url}${end}" 
+    webget2  /tmp/reject-list.txt  ${url_cdn}${reject_list_download_url}
+    if [ ! -f "/tmp/reject-list.txt" ]; then
+      echo -e "${red}Failed to download reject-list.txt${end}"
       exit 1
     fi
-    [ -f "${mosdns_dir}/geosite.dat" ] && rm -rf "${mosdns_dir}/geosite.dat"
-    mv /tmp/geosite.dat ${mosdns_dir}/geosite.dat
-    [ -f "${bindir}/GeoSite.dat" ] && rm -rf "${bindir}/GeoSite.dat"
-    cp -r "${mosdns_dir}/geosite.dat" "${bindir}/GeoSite.dat"
+    [ -f "${mosdns_dir}/reject-list.txt" ] && rm -rf "${mosdns_dir}/reject-list.txt"
+    mv /tmp/reject-list.txt ${mosdns_dir}/reject-list.txt
 }
+
+download_CN_ip_cidr () {
+    if [ "$update_git" != "原作者GitHub" ];then
+      CN_ip_download_url="${update_url}/bin/CN-ip-cidr.txt"
+    else
+      CN_ip_download_url="https://raw.githubusercontent.com/Hackl0us/GeoIP2-CN/release/CN-ip-cidr.txt"
+    fi
+    echo -e "${green}Start download CN-ip-cidr.txt from ${CN_ip_download_url}${end}" 
+    webget2  /tmp/CN-ip-cidr.txt  ${url_cdn}${CN_ip_download_url}
+    if [ ! -f "/tmp/CN-ip-cidr.txt" ]; then
+      echo -e "${red}Failed to download CN-ip-cidr.txt${end}"
+      exit 1
+    fi
+    [ -f "${mosdns_dir}/CN-ip-cidr.txt" ] && rm -rf "${mosdns_dir}/CN-ip-cidr.txt"
+    mv /tmp/CN-ip-cidr.txt ${mosdns_dir}/CN-ip-cidr.txt
+}
+
 
 update_mosdns_y() {
     getcpucore
@@ -1342,9 +1396,9 @@ update_shell_y() {
     fi
     download_sps
     echo -e "`date +%F\ %T` AutoClash v${new_shell_ver} 下载成功!" >> /tmp/update.log  2>&1
-    rm -rf ${autobin_dir}/autoclash   
-    mv /tmp/autoclash ${autobin_dir}/autoclash  >> /dev/null 2>&1
-    chmod +x ${autobin_dir}/autoclash >> /dev/null 2>&1
+    rm -rf ${auto_dir}/autoclash   
+    mv /tmp/autoclash ${auto_dir}/autoclash  >> /dev/null 2>&1
+    chmod +x ${auto_dir}/autoclash >> /dev/null 2>&1
     echo -e "${green}AutoClash v${new_shell_ver}强制升级成功，请重新运行脚本!${end}" && exit 0
 }
 
@@ -1366,9 +1420,9 @@ update_shell() {
       fi
       download_sps
       echo -e "`date +%F\ %T` AutoClash v${new_shell_ver} 下载成功!" >> /tmp/update.log  2>&1
-      rm -rf ${autobin_dir}/autoclash   
-      mv /tmp/autoclash ${autobin_dir}/autoclash  >> /dev/null 2>&1
-      chmod +x ${autobin_dir}/autoclash >> /dev/null 2>&1
+      rm -rf ${auto_dir}/autoclash   
+      mv /tmp/autoclash ${auto_dir}/autoclash  >> /dev/null 2>&1
+      chmod +x ${auto_dir}/autoclash >> /dev/null 2>&1
       echo -e "${green}AutoClash v${new_shell_ver}升级成功，请重新运行脚本!${end}" && exit 0
     fi
 }
@@ -2738,8 +2792,11 @@ EOF
           before_show_menu
     ;;
       9)  download_clash_Country
-          download_geoip
-          download_geosite
+          # download_geoip
+          # download_geosite
+          download_direct_list
+          download_reject_list
+          download_CN_ip_cidr
           download_cn_ip
           before_show_menu
     ;;
