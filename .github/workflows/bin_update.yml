@@ -53,6 +53,9 @@ jobs:
         curl -kfSL -O https://raw.githubusercontent.com/P3TERX/ca-certificates.crt/download/ca-certificates.crt
         curl -kfSL -O https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/geosite.dat
         curl -kfSL -O https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/geoip.dat
+        curl -kfSL -O https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/direct-list.txt
+        curl -kfSL -O https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/reject-list.txt
+        curl -kfSL -O https://raw.githubusercontent.com/Hackl0us/GeoIP2-CN/release/CN-ip-cidr.txt
         sed -i '/GeoIP_v*/'d version
         echo GeoIP_v=`date '+%Y%m%d'` >> version
         echo IP数据库及根证书文件更新完成！
