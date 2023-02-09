@@ -1,138 +1,54 @@
-# 日志设置
+# /srv/mosdns/config.yaml
 log:
-  level: info                 # 日志级别。可选 "debug" "info" "warn" "error"。默认 "info"。
-  file: /tmp/mosdns.log       # 记录日志到文件。
+  level: info
 
-# 数据源设置
-data_providers:
-  - tag: geosite              # 数据源的 tag。由用户自由设定。不能重复。
-    file: ./geosite.dat       # 文件位置
-    auto_reload: true         # 文件有变化时是否自动重载。
-  - tag: geoip
-    file: ./geoip.dat
-    auto_reload: true
-
-# 插件设置
 plugins:
   # 缓存
   - tag: cache
     type: cache
     args:
-      size: 10240
-      #redis: "redis://127.0.0.1:6379/0"
+      size: 1024
       lazy_cache_ttl: 86400
-      cache_everything: true
 
-  # 调整TTL的插件
-  - tag: ttl_short
-    type: ttl
-    args:
-      minimal_ttl: 60
-      maximum_ttl: 3600
-  - tag: ttl_long
-    type: ttl
-    args:
-      minimal_ttl: 300
-      maximum_ttl: 3600
-
-  # 匹配PTR类型请求的插件
-  - tag: query_is_ptr
-    type: query_matcher
-    args:
-      qtype: [12]
-
-  # 匹配TYPE65类型请求的插件
-  - tag: qtype65
-    type: query_matcher
-    args:
-      qtype: [65]
-
-  # 屏蔽请求的插件
-  - tag: black_hole
-    type: blackhole
-    args:
-      rcode: 0
-      ipv4: "127.0.0.1"
-      ipv6: "::1"
-
-  # 匹配Akamai的插件
-  - tag: response_cname_akamai
-    type: response_matcher
-    args:
-      cname:
-        - "akamaiedge.net"
-        - "akadns.net"
-        - "edgekey.net"
-
-  # 匹配本地域名的插件
-  - tag: query_is_local_domain
-    type: query_matcher         # 匹配请求的特征
-    args:
-      domain:                   # 匹配请求域名。这是个`域名匹配器`
-        - 'provider:geosite:cn' # 可以是由 data-provider 提供的外部数据，格式 "provider:tag"
-
-  # 匹配非本地域名的插件
-  - tag: query_is_non_local_domain
-    type: query_matcher
-    args:
-      domain:
-        - 'provider:geosite:geolocation-!cn'
-
-  # 匹配广告域名的插件
-  - tag: query_is_ad_domain
-    type: query_matcher
-    args:
-      domain:
-        - 'provider:geosite:category-ads-all'
-
-  # 匹配本地 IP 的插件
-  - tag: response_has_local_ip
-    type: response_matcher      # 匹配应答的特征
-    args:
-      ip:                       # 匹配应答 A 和 AAAA 记录的 IP 。这是个 `IP 匹配器`
-        - 'provider:geoip:cn'
-
-
-  # 转发至本地服务器的插件
+  # 转发至本地服务器 DNSPod
   - tag: forward_local
-    type: fast_forward
-    args:
-      upstream:
-        - addr: 202.96.128.166 # 广东电信
-          trusted: true
-        - addr: "tls://120.53.53.53:853"
-          enable_pipeline: true
-        - addr: "udpme://223.5.5.5"
-          trusted: true
-  - tag: forward_alidns
-    type: fast_forward
-    args:
-      upstream:
-        - addr: "223.5.5.5"
-
-  # 转发至远程服务器的插件
-  - tag: forward_remote
-    type: fast_forward
-    args:
-      upstream:
-        - addr: 127.0.0.1:5352  # clash
-          trusted: true
-
-  # 转发至本地无污染服务器的插件
-  # [easymosdns|tunadns]
-  - tag: forward_easymosdns
     type: forward
     args:
-      upstream:
-        - addr: "https://edns.apad.pro:3306/dns-query"
-      bootstrap:
-        - "119.29.29.29"
-      timeout: 5
-  - tag: forward_tunadns
-    type: fast_forward
+      upstreams:
+        - addr: https://1.12.12.12/dns-query
+
+  # 转发至远程服务器 Clash
+  - tag: forward_remote
+    type: forward
     args:
-      upstream:
-        - addr: "https://101.6.6.6:8443/dns-query"
+      upstreams:
+        - addr: 127.0.0.1:5352  # clash
+
+  # fallback 用本地服务器 sequence
+  # 返回不包含本地 ip 则 reject
+  - tag: local_ip_sequence
+    type: sequence
+    args:
+      - exec: $forward_local
+      - matches: resp_ip &./CN-ip-cidr.txt
+        exec: accept
+      - exec: reject
+
+  # fallback 用远程服务器 sequence
+  - tag: remote_sequence
+    type: sequence
+    args:
+      - exec: $forward_remote
+      - exec: accept
+
+  # fallback 用远程服务器 sequence
+  - tag: "fallback"
+    type: "fallback"
+    args:
+      primary: local_ip_sequence
+      secondary: remote_sequence
+      threshold: 500
+      always_standby: true
 
   # 主要的运行逻辑插件
   # sequence 插件中调用的插件 tag 必须在 sequence 前定义，
@@ -140,70 +56,32 @@ plugins:
   - tag: main_sequence
     type: sequence
     args:
-      exec:
-        # 缓存
-        - cache
+      - matches: qname &./reject-list.txt
+        exec: reject
+      - exec: $cache
+      - matches: has_resp
+        exec: accept
+      - matches: qname &./direct-list.txt
+        exec: $forward_local
+      - matches: has_resp
+        exec: accept
+      - exec: $fallback
 
-        # 屏蔽TYPE65类型请求
-        - if: qtype65
-          exec:
-          - black_hole
-          - _return
+  # 启动 udp 服务器。
+  - tag: udp_server
+    type: udp_server
+    args:
+      entry: main_sequence
+      listen: 0.0.0.0:5351
 
-        # 强制用本地服务器解析
-        - if: query_is_ptr
-          exec:
-            - forward_alidns
-            - _return
-
-        # 屏蔽广告域名
-        - if: query_is_ad_domain
-          exec:
-            - _new_nxdomain_response  # 生成 Rcode 为 3 (NXDOMAIN: 域名不存在)应答。放入“请求上下文”
-            - _return                 # 什么都不做。不会将请求上下文传递给后续流水线。可以用于结束 sequence 流水线
-
-        # 已知的本地域名用本地服务器解析
-        - if: "(query_is_local_domain) || (response_cname_akamai)"
-          exec:
-            - forward_local           # 转发至本地服务器的插件
-            - _return                 # 什么都不做。不会将请求上下文传递给后续流水线。可以用于结束 sequence 流水线
-
-        # 已知的非本地域名用远程服务器解析
-        - if: query_is_non_local_domain
-          exec:
-            - _prefer_ipv4            # 可用让下游客户端支持双栈时优先使用 IPv4
-            - forward_remote          # 转发至远程服务器的插件
-            - _return                 # 什么都不做。不会将请求上下文传递给后续流水线。可以用于结束 sequence 流水线
-
-          # 剩下的未知域名用 IP 分流，分流原理请参考 `fallback`的工作流程。
-          # primary 从远程服务器获取应答，丢弃非本地 IP 的结果。
-        - primary:                    # 主要流水线(独立的)
-            - forward_local           # 转发至本地服务器的插件
-            - if: "(! response_has_local_ip) && [_response_valid_answer]"   # 不匹配本地 IP 的插件 && 应答包含有效的 ANSWER 记录(ANSWER 中有记录能与 QUESTION 对应)
-              exec:
-                - _drop_response      # 丢弃已存在的应答
-          # secondary 从本地服务器获取应答。
-          secondary:                  # 次要流水线(独立的)
-            - _prefer_ipv4            # 可用让下游客户端支持双栈时优先使用 IPv4
-            - forward_remote          # 转发至远程服务器的插件
-            - ttl_short
-            - if: "(response_has_local_ip) || (response_cname_akamai)"
-              exec:
-                - _prefer_ipv4
-                - forward_easymosdns
-                - ttl_long
-          # 这里建议设置成 local 服务器正常延时的 2~5 倍。
-          # 这个延时保证了 local 延时偶尔变高时，其结果不会被 remote 抢答。
-          # 如果 local 超过这个延时还没响应，可以假设 local 出现了问题。
-          # 这时用就采用 remote 的应答。单位: 毫秒。
-          fast_fallback: 200
-          always_standby: false
-
-# 服务器设置
-servers:
-  - exec: main_sequence   # 本服务器运行插件的 tag
-    listeners:            # 监听设置。是数组。可配置多个。
-      - protocol: udp     # 协议，支持 "udp", "tcp", "tls", "https" 和 "http"
-        addr: 0.0.0.0:5351  # 监听地址。
-      - protocol: tcp
-        addr: 0.0.0.0:5351
+#  - tag: tcp_server
+#    type: tcp_server
+#    args:
+#      entry: main_sequence
+#      listen: 0.0.0.0:5351
+#
+#  - tag: udp_server_v6
+#    type: udp_server
+#    args:
+#      entry: main_sequence
+#      listen: "[::1]:53"
