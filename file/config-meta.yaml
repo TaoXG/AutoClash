@@ -15,7 +15,7 @@ proxy-groups:
   - { name: '🚀 节点选择', <<: [*SELECT, *NODES2] }
   - { name: '🌀 手动切换', <<: *SELECT, use: [AllProxy] }
   - { name: '📲 Telegram', <<: [*SELECT, *NODES] }
-  - { name: '📹 Youtube', <<: [*SELECT, *NODES] }
+  - { name: '📹 Youtube', <<: [*SELECT, *NODES], disable-udp: true }
   - { name: '🎥 Netflix', <<: [*SELECT, *NODES] }
   - { name: '📈 SpeedTest', <<: [*SELECT, *NODES] }
   - { name: '🌍 国外媒体', <<: [*SELECT, *NODES] }
