@@ -3,5 +3,5 @@ clashpre_v=2023.03.04
 clashmeta_v=v1.14.2
 subconverter_v=Alpha
 GeoIP_v=20230311
-mosdns_v=v5.1.2
 adguardhome_v=v0.107.26
+mosdns_v=v5.1.3
