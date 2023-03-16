@@ -32,7 +32,7 @@ plugins:
       - exec: $forward_local
       - matches: resp_ip &./CN-ip-cidr.txt
         exec: accept
-      - exec: reject
+      - exec: drop_resp
 
   # fallback 用远程服务器 sequence
   - tag: remote_sequence
@@ -79,9 +79,3 @@ plugins:
 #    args:
 #      entry: main_sequence
 #      listen: 0.0.0.0:5351
-#
-#  - tag: udp_server_v6
-#    type: udp_server
-#    args:
-#      entry: main_sequence
-#      listen: "[::1]:53"
