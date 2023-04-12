@@ -4,25 +4,37 @@ log:
 
 plugins:
   # 缓存
-  - tag: cache
+  - tag: tag_cache
     type: cache
     args:
-      size: 1024
-      lazy_cache_ttl: 86400
+      size: 10240
+      lazy_cache_ttl: 259200
+      dump_file: ./cache.dump
+      dump_interval: 3600
 
-  # 转发至本地服务器 DNSPod
+  # 转发至本地服务器 DoH服务器
   - tag: forward_local
     type: forward
     args:
+      concurrent: 3
       upstreams:
-        - addr: https://1.12.12.12/dns-query
-
+        - tag: dnspod_main
+          addr: "https://1.12.12.12/dns-query"
+          enable_pipeline: true
+        - tag: alidns_main
+          addr: "https://223.5.5.5/dns-query"
+          enable_pipeline: true
+        - tag: alidns_backup
+          addr: "https://223.6.6.6/dns-query"
+          enable_pipeline: true
   # 转发至远程服务器 Clash
   - tag: forward_remote
     type: forward
     args:
       upstreams:
-        - addr: 127.0.0.1:5352  # clash
+        - tag: clash_main
+          addr: "127.0.0.1:5352"
+          enable_pipeline: true
 
   # fallback 用本地服务器 sequence
   # 返回不包含本地 ip 则 reject
@@ -56,9 +68,14 @@ plugins:
   - tag: main_sequence
     type: sequence
     args:
+      - matches: qtype 12
+        exec: reject 3
+      - matches: qtype 65
+        exec: reject 3
       - matches: qname &./reject-list.txt
-        exec: reject
-      - exec: $cache
+        exec: reject 0
+      - exec: prefer_ipv4
+      - exec: $tag_cache
       - matches: has_resp
         exec: accept
       - matches: qname &./direct-list.txt
@@ -72,10 +89,4 @@ plugins:
     type: udp_server
     args:
       entry: main_sequence
-      listen: 0.0.0.0:5351
-
-#  - tag: tcp_server
-#    type: tcp_server
-#    args:
-#      entry: main_sequence
-#      listen: 0.0.0.0:5351
+      listen: :5351
