@@ -20,20 +20,20 @@ plugins:
       upstreams:
         - tag: dnspod_main
           addr: "https://1.12.12.12/dns-query"
-          enable_pipeline: true
         - tag: alidns_main
           addr: "https://223.5.5.5/dns-query"
-          enable_pipeline: true
         - tag: alidns_backup
           addr: "https://223.6.6.6/dns-query"
-          enable_pipeline: true
   # 转发至远程服务器 Clash
   - tag: forward_remote
     type: forward
     args:
+      concurrent: 2
       upstreams:
-        - tag: clash_main
+        - tag: clash_udp
           addr: "127.0.0.1:5352"
+        - tag: clash_tcp
+          addr: "tcp://127.0.0.1:5352"
           enable_pipeline: true
 
   # fallback 用本地服务器 sequence
@@ -45,17 +45,15 @@ plugins:
       - matches: resp_ip &./CN-ip-cidr.txt
         exec: accept
       - exec: drop_resp
-
   # fallback 用远程服务器 sequence
   - tag: remote_sequence
     type: sequence
     args:
       - exec: $forward_remote
       - exec: accept
-
   # fallback 用远程服务器 sequence
-  - tag: "fallback"
-    type: "fallback"
+  - tag: tag_fallback
+    type: fallback
     args:
       primary: local_ip_sequence
       secondary: remote_sequence
@@ -69,9 +67,9 @@ plugins:
     type: sequence
     args:
       - matches: qtype 12
-        exec: reject 3
+        exec: reject 0
       - matches: qtype 65
-        exec: reject 3
+        exec: reject 0
       - matches: qname &./reject-list.txt
         exec: reject 0
       - exec: prefer_ipv4
@@ -82,7 +80,7 @@ plugins:
         exec: $forward_local
       - matches: has_resp
         exec: accept
-      - exec: $fallback
+      - exec: $tag_fallback
 
   # 启动 udp 服务器。
   - tag: udp_server
