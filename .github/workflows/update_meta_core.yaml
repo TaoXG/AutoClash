@@ -52,7 +52,7 @@ jobs:
         rm -fr ./bin/clash_meta/*
         cp ./tmp/* ./bin/clash_meta/
         rm -fr ./tmp
-        sed -i "s/clashmeta_v=.*/clashmeta_v=$(./bin/clash_meta/clash-linux-amd64 -v 2>/dev/null | sed 's/ linux.*//;s/.* //')/" bin/version
+        sed -i "s/clashmeta_v=.*/clashmeta_v=$(./bin/clash_meta/clash-linux-amd64 -v 2>/dev/null | head -n 1 | sed 's/ linux.*//;s/.* //')/" bin/version
     - name: Commit and push
       run: |
         git config --global user.email "gdfsnhsw@gmail.com" && git config --global user.name "Bot"
