@@ -694,7 +694,7 @@ update_clashmeta_y() {
     fi
 
     if [ ! -f "${clashmeta_version_file}" ]; then
-      echo $(${clashmeta_bin} -v 2>/dev/null | awk '{print $3}') > ${clashmeta_version_file}
+      echo $(${clashmeta_bin} -v 2>/dev/null | awk 'NR==1{print $3}') > ${clashmeta_version_file}
     fi
     local_clashmeta_version=$(cat "${clashmeta_version_file}")
 
@@ -2746,7 +2746,7 @@ EOF
     echo -----------------------------------------------
     echo -e "1. ${green}更新 ${end}AutoClash      ${yellow}${sh_ver}${end}      >  ${lightblue}${new_autoclash_version}${end}"
     echo -e "2. ${green}更新 ${end}Clash.Premium: ${yellow}$(${clashpre_bin} -v | awk '{print $2}')${end} >  ${lightblue}${new_clashpre_version}${end}"
-    echo -e "3. ${green}更新 ${end}Clash.Meta:    ${yellow}$(${clashmeta_bin} -v | awk '{print $3}')${end}    >  ${lightblue}${new_clashmeta_version}${end}"
+    echo -e "3. ${green}更新 ${end}Clash.Meta:    ${yellow}$(${clashmeta_bin} -v | awk 'NR==1{print $3}')${end}    >  ${lightblue}${new_clashmeta_version}${end}"
     echo -e "4. ${green}更新 ${end}Mosdns:        ${yellow}$(${mosdns_bin} version | awk '{print $1}'| cut -d'-' -f1)${end}     >  ${lightblue}${new_mosdns_version}${end}"
     echo -e "5. ${green}更新 ${end}Subconverter   ${yellow}$(cat ${subconverter_version_file})${end}      >  ${lightblue}${new_subconverter_version}${end}" 
     echo -e "6. ${green}更新 ${end}AdGuardHome    ${yellow}$(${adg_bin} --version | awk '{print $4}'| cut -d'-' -f1)${end}  >  ${lightblue}${new_adguardhome_version}${end}" 
@@ -2759,8 +2759,6 @@ EOF
     echo -e "0. 返回上级菜单"
     echo -----------------------------------------------
     echo && read -e -p "请输入选择 [1-10]: " num
-
-
 
     case "${num}" in
       1)  update_shell_y
