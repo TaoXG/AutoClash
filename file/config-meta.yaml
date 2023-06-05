@@ -1,12 +1,12 @@
 proxies:
 ###############【锚点】###############
-provider: &PROVIDER { type: http, interval: 3600, health-check: { enable: true, url: 'http://www.gstatic.com/generate_204', interval: 600 } }
+provider: &PROVIDER { type: http, interval: 3600, health-check: { enable: true, url: 'https://cp.cloudflare.com/generate_204', interval: 600 } }
 rule: &RULE { type: http, behavior: classical, interval: 86400 }
 select: &SELECT { type: select }
-fallback: &FALLBACK { type: fallback, url: 'http://www.gstatic.com/generate_204', interval: 300 }
-url-test: &URL-TEST { type: url-test, url: 'http://www.gstatic.com/generate_204', interval: 300 }
-NODES: &NODES { proxies: [🚀 节点选择, 🌀 手动切换, 🇭🇰 香港节点, 🇸🇬 新加坡节点, 🇨🇳 台湾节点, 🇯🇵 日本节点, 🇺🇲 美国节点, 🇰🇷 韩国节点, 🏳️‍🌈 其他节点, 🔄 延迟最低, 🎯 全球直连] }
-NODES2: &NODES2 { proxies: [🔄 延迟最低, 🌀 手动切换, 🇭🇰 香港节点, 🇸🇬 新加坡节点, 🇨🇳 台湾节点, 🇯🇵 日本节点, 🇺🇲 美国节点, 🇰🇷 韩国节点, 🏳️‍🌈 其他节点, 🎯 全球直连] }
+fallback: &FALLBACK { type: fallback, url: 'https://cp.cloudflare.com/generate_204', interval: 300 }
+url-test: &URL-TEST { type: url-test, url: 'https://cp.cloudflare.com/generate_204', interval: 300 }
+NODES: &NODES { proxies: [🚀 节点选择, 🌀 手动切换, 🔰 故障转移, 🇭🇰 香港节点, 🇸🇬 新加坡节点, 🇨🇳 台湾节点, 🇯🇵 日本节点, 🇺🇲 美国节点, 🇰🇷 韩国节点, 🏳️‍🌈 其他节点, 🔄 延迟最低, 🎯 全球直连] }
+NODES2: &NODES2 { proxies: [🔄 延迟最低, 🌀 手动切换, 🔰 故障转移, 🇭🇰 香港节点, 🇸🇬 新加坡节点, 🇨🇳 台湾节点, 🇯🇵 日本节点, 🇺🇲 美国节点, 🇰🇷 韩国节点, 🏳️‍🌈 其他节点, 🎯 全球直连] }
 
 proxy-providers:
   AllProxy: &AllProxy { <<: *PROVIDER, path: ./Provider/Proxy/AllProxy.yaml, url: "http://127.0.0.1:25500/getprofile?name=profiles/formyairport.ini&token=password&list=true" }
@@ -14,6 +14,7 @@ proxy-providers:
 proxy-groups:
   - { name: '🚀 节点选择', <<: [*SELECT, *NODES2] }
   - { name: '🌀 手动切换', <<: *SELECT, use: [AllProxy] }
+  - { name: '🔰 故障转移', <<: *FALLBACK, use: [AllProxy] }
   - { name: '📲 Telegram', <<: [*SELECT, *NODES] }
   - { name: '📹 Youtube', <<: [*SELECT, *NODES], disable-udp: true }
   - { name: '🎥 Netflix', <<: [*SELECT, *NODES] }
