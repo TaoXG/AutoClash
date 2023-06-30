@@ -209,7 +209,7 @@ modify_yaml(){
   }
   #sniffer配置
   [ "$sniffer" = "已开启" ] && {
-    [ "$clashcore" = "clashmeta" ] && sniffer_set="sniffer: {enable: true, sniffing: [tls, http]}"
+    [ "$clashcore" = "clashmeta" ] && sniffer_set="sniffer: {enable: true, sniff: {tls: {ports: [443, 8443]}, http: {ports: [80, 8080-8880], override-destination: true}}}"
     [ "$clashcore" = "clashpre" ] && exper="experimental: {ignore-resolve-fail: true, interface-name: '$eth_n', sniff-tls-sni: true}"
   }
 
