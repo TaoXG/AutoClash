@@ -213,8 +213,12 @@ modify_yaml(){
     [ "$clashcore" = "clashpre" ] && exper="experimental: {ignore-resolve-fail: true, interface-name: '$eth_n', sniff-tls-sni: true}"
   }
 
-  [ "$clashcore" = "clashmeta" ] && delay="unified-delay: true" && concurrent="tcp-concurrent: true"
-  [ "$clashcore" = "clashpre" ] && delay="" && concurrent=""
+	#Meta内核专属配置
+	[ "$clashcore" = 'clashmeta' ] && {
+		find_process="find-process-mode: off"
+    delay="unified-delay: true"
+    concurrent="tcp-concurrent: true"
+	}
 
   #设置目录
   yaml=$clashdir/config.yaml
@@ -235,6 +239,7 @@ modify_yaml(){
   #添加配置
 ###################################
   cat > $tmpdir/set.yaml <<EOF
+### 配置说明:https://wiki.metacubex.one/
 mixed-port: $mix_port
 redir-port: $redir_port
 tproxy-port: $tproxy_port
@@ -251,8 +256,11 @@ $tun
 $exper
 $dns
 $sniffer_set
+# Meta内核专属配置
+$find_process
 $delay
 $concurrent
+#
 hosts:
 EOF
 ###################################
