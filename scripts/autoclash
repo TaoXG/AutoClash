@@ -18,7 +18,7 @@ purpleb="\033[1;35m"
 lightblue="\033[0;36m"
 lightblueb="\033[1;36m"
 
-sh_ver="2.1.1"
+sh_ver="2.2.0"
 
 cpu=$(hostnamectl | grep Architecture: | awk '{print $2}')
 system=$(cat /etc/issue | awk '{print $1}')
@@ -2790,8 +2790,8 @@ EOF
           before_show_menu
     ;;
       9)  download_clash_Country
-          # download_geoip
-          # download_geosite
+          download_geoip
+          download_geosite
           download_direct_list
           download_reject_list
           download_CN_ip_cidr

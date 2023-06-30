@@ -212,6 +212,10 @@ modify_yaml(){
     [ "$clashcore" = "clashmeta" ] && sniffer_set="sniffer: {enable: true, sniffing: [tls, http]}"
     [ "$clashcore" = "clashpre" ] && exper="experimental: {ignore-resolve-fail: true, interface-name: '$eth_n', sniff-tls-sni: true}"
   }
+
+  [ "$clashcore" = "clashmeta" ] && delay="unified-delay: true" && concurrent="tcp-concurrent: true"
+  [ "$clashcore" = "clashpre" ] && delay="" && concurrent=""
+
   #设置目录
   yaml=$clashdir/config.yaml
   tmpdir=/tmp/clash_$USER
@@ -247,6 +251,8 @@ $tun
 $exper
 $dns
 $sniffer_set
+$delay
+$concurrent
 hosts:
 EOF
 ###################################
