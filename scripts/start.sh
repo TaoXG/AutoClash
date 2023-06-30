@@ -213,12 +213,12 @@ modify_yaml(){
     [ "$clashcore" = "clashpre" ] && exper="experimental: {ignore-resolve-fail: true, interface-name: '$eth_n', sniff-tls-sni: true}"
   }
 
-	#Meta内核专属配置
-	[ "$clashcore" = 'clashmeta' ] && {
-		find_process="find-process-mode: off"
+  #Meta内核专属配置
+  [ "$clashcore" = 'clashmeta' ] && {
+    find_process="find-process-mode: off"
     delay="unified-delay: true"
     concurrent="tcp-concurrent: true"
-	}
+  }
 
   #设置目录
   yaml=$clashdir/config.yaml
