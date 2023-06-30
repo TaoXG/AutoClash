@@ -216,8 +216,8 @@ modify_yaml(){
   #Meta内核专属配置
   [ "$clashcore" = 'clashmeta' ] && {
     find_process="find-process-mode: off"
-    delay="unified-delay: true"
-    concurrent="tcp-concurrent: true"
+    unified_delay="unified-delay: true"
+    tcp_concurrent="tcp-concurrent: true"
   }
 
   #设置目录
@@ -258,8 +258,8 @@ $dns
 $sniffer_set
 # Meta内核专属配置
 $find_process
-$delay
-$concurrent
+$unified_delay
+$tcp_concurrent
 #
 hosts:
 EOF
