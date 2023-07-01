@@ -207,19 +207,15 @@ modify_yaml(){
       profile='profile: {store-fake-ip: false}'
     fi
   }
-  #sniffer配置
-  [ "$sniffer" = "已开启" ] && {
-    [ "$clashcore" = "clashmeta" ] && sniffer_set="sniffer: {enable: true, sniff: {tls: {ports: [443, 8443]}, http: {ports: [80, 8080-8880], override-destination: true}}}"
-    [ "$clashcore" = "clashpre" ] && exper="experimental: {ignore-resolve-fail: true, interface-name: '$eth_n', sniff-tls-sni: true}"
-  }
-
+  #域名嗅探配置
+  [ "$sniffer" = "已启用" ] && [ "$clashcore" = "clashmeta" ] && sniffer_set="sniffer: {enable: true, skip-domain: [Mijia Cloud], sniff: {tls: {ports: [443, 8443]}, http: {ports: [80, 8080-8880], override-destination: true}}}"
+  [ "$clashcore" = "clashpre" ] && [ "$dns_mod" = "redir_host" ] && exper="experimental: {ignore-resolve-fail: true, interface-name: '$eth_n', sniff-tls-sni: true}"
   #Meta内核专属配置
   [ "$clashcore" = 'clashmeta' ] && {
     find_process="find-process-mode: off"
     unified_delay="unified-delay: true"
     tcp_concurrent="tcp-concurrent: true"
   }
-
   #设置目录
   yaml=$clashdir/config.yaml
   tmpdir=/tmp/clash_$USER
@@ -233,8 +229,9 @@ modify_yaml(){
   mkdir -p $tmpdir > /dev/null
   [ "$b" -gt 0 ] && sed "${a},${b}d" $yaml > $tmpdir/proxy.yaml || cp -f $yaml $tmpdir/proxy.yaml
   #跳过本地tls证书验证
-  [ "$skip_cert" = "已开启" ] && sed -i '1,99s/skip-cert-verify: false/skip-cert-verify: true/' $tmpdir/proxy.yaml
-###添加CDN####autoclash####
+  [ "$skip_cert" = "已开启" ] && sed -i 's/skip-cert-verify: false/skip-cert-verify: true/' $tmpdir/proxy.yaml || \
+    sed -i 's/skip-cert-verify: true/skip-cert-verify: false/' $tmpdir/proxy.yaml
+  ###添加CDN####autoclash####
   [ "$raw_cdn" = "已开启" ] && sed -i "s#: https://raw#: ${url_cdn}https://raw#" $tmpdir/proxy.yaml
   #添加配置
 ###################################
@@ -261,19 +258,27 @@ $find_process
 $unified_delay
 $tcp_concurrent
 #
-hosts:
 EOF
 ###################################
   #读取本机hosts并生成配置文件
-  hosts_dir=/etc/hosts
-  if [ "$redir_mod" != "纯净模式" ] && [ "$dns_no" != "已禁用" ] && [ -f $hosts_dir ];then
+  if [ "$hosts_opt" != "未启用" ] && [ -z "$(grep -E '^hosts:' $clashdir/user.yaml 2>/dev/null)" ];then
+    #NTP劫持
+    cat >> $tmpdir/hosts.yaml <<EOF
+hosts:
+   'time.android.com': 203.107.6.88
+   'time.facebook.com': 203.107.6.88  
+EOF
+    #加载本机hosts
+    sys_hosts=/etc/hosts
+    [ -f /data/etc/custom_hosts ] && sys_hosts=/data/etc/custom_hosts
     while read line;do
       [ -n "$(echo "$line" | grep -oE "([0-9]{1,3}[\.]){3}" )" ] && \
       [ -z "$(echo "$line" | grep -oE '^#')" ] && \
       hosts_ip=$(echo $line | awk '{print $1}')  && \
       hosts_domain=$(echo $line | awk '{print $2}') && \
+      [ -z "$(cat $tmpdir/hosts.yaml | grep -oE "$hosts_domain")" ] && \
       echo "   '$hosts_domain': $hosts_ip" >> $tmpdir/hosts.yaml
-    done < $hosts_dir
+    done < $sys_hosts
   fi
   #合并文件
   [ -f $clashdir/user.yaml ] && yaml_user=$clashdir/user.yaml
@@ -283,43 +288,6 @@ EOF
   # #插入自定义规则
   sed -i "/#自定义规则/d" $tmpdir/config.yaml
   space_rules=$(sed -n '/^rules/{n;p}' $tmpdir/proxy.yaml | grep -oE '^ *') #获取空格数
-  # if [ -f $clashdir/rules.yaml ];then
-  #   sed -i '/^$/d' $clashdir/rules.yaml && echo >> $clashdir/rules.yaml #处理换行
-  #   while read line;do
-  #     [ -z "$(echo "$line" | grep '#')" ] && \
-  #     [ -n "$(echo "$line" | grep '\- ')" ] && \
-  #     line=$(echo "$line" | sed 's#/#\\/#') && \
-  #     sed -i "/^rules:/a\\$space_rules$line #自定义规则" $tmpdir/config.yaml
-  #   done < $clashdir/rules.yaml
-  # fi
-  # #插入自定义代理
-  # sed -i "/#自定义代理/d" $tmpdir/config.yaml
-  # space=$(sed -n '/^proxies:/{n;p}' $tmpdir/config.yaml | grep -oE '^ *') #获取空格数
-  # if [ -f $clashdir/proxies.yaml ];then
-  #   sed -i '/^$/d' $clashdir/proxies.yaml && echo >> $clashdir/proxies.yaml #处理换行
-  #   while read line;do
-  #     [ -z "$(echo "$line" | grep '^proxies:')" ] && \
-  #     [ -z "$(echo "$line" | grep '#')" ] && \
-  #     [ -n "$(echo "$line" | grep '\- ')" ] && \
-  #     line=$(echo "$line" | sed 's#/#\\/#') && \
-  #     sed -i "/^proxies:/a\\$space$line #自定义代理" $tmpdir/config.yaml
-  #   done < $clashdir/proxies.yaml
-  # fi
-  # #插入自定义策略组
-  # sed -i "/#自定义策略组/d" $tmpdir/config.yaml
-  # space=$(sed -n '/^proxy-groups:/{n;p}' $tmpdir/config.yaml | grep -oE '^ *') #获取原始配置空格数
-  # if [ -f $clashdir/proxy-groups.yaml ];then
-  #   c_space=$(sed -n '/^proxy-groups:/{n;p}' $clashdir/proxy-groups.yaml | grep -oE '^ *') #获取自定义配置空格数
-  #   [ -n "$c_space" ] && sed -i "s/$c_space/$space/g" $clashdir/proxy-groups.yaml && echo >> $clashdir/proxy-groups.yaml #处理缩进空格数
-  #   sed -i '/^$/d' $clashdir/proxy-groups.yaml && echo >> $clashdir/proxy-groups.yaml #处理换行
-  #   cat $clashdir/proxy-groups.yaml | awk '{array[NR]=$0} END { for(i=NR;i>0;i--){print array[i];} }' | while IFS= read line;do
-  #     [ -z "$(echo "$line" | grep '^proxy-groups:')" ] && \
-  #     [ -n "${line// /}" ] && \
-  #     [ -z "$(echo "$line" | grep '#')" ] && \
-  #     line=$(echo "$line" | sed 's#/#\\/#') && \
-  #     sed -i "/^proxy-groups:/a\\$line #自定义策略组" $tmpdir/config.yaml
-  #   done
-  # fi
   #tun/fake-ip防止流量回环
   if [ "$mode" = "Rule" ] && [ "$redir_mod" = "混合模式" -o "$redir_mod" = "Tun模式" -o "$dns_mod" = "fake-ip" ];then
     sed -i "/^rules:/a\\$space_rules- SRC-IP-CIDR,198.18.0.0/16,REJECT #自定义规则(防止回环)" $tmpdir/config.yaml
