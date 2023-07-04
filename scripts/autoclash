@@ -18,7 +18,7 @@ purpleb="\033[1;35m"
 lightblue="\033[0;36m"
 lightblueb="\033[1;36m"
 
-sh_ver="2.2.1"
+sh_ver="2.2.2"
 
 cpu=$(hostnamectl | grep Architecture: | awk '{print $2}')
 system=$(cat /etc/issue | awk '{print $1}')
@@ -484,7 +484,7 @@ download_clash_dashboard () {
     fi 
 
     if [ "$update_git" != "原作者GitHub" ];then
-      clash_dashboard_download_url="${update_url}/bin/dashboard.zip"
+      clash_dashboard_download_url="${update_url}/bin/dashboard/dashboard.zip"
     else
       clash_dashboard_download_url="https://github.com/Dreamacro/clash-dashboard/archive/gh-pages.zip"
     fi
@@ -506,7 +506,7 @@ download_clash_yacd () {
       mkdir ${clashdir}/ui
     fi 
     if [ "$update_git" != "原作者GitHub" ];then
-      clash_yacd_download_url="${update_url}/bin/yacd.zip"
+      clash_yacd_download_url="${update_url}/bin/dashboard/yacd.zip"
     else
       clash_yacd_download_url="https://github.com/haishanh/yacd/archive/gh-pages.zip"
     fi
@@ -525,7 +525,7 @@ download_clash_yacd () {
 
 download_clash_Country () {
     if [ "$update_git" != "原作者GitHub" ];then
-      clash_Country_download_url="${update_url}/bin/Country.mmdb"
+      clash_Country_download_url="${update_url}/bin/geodata/Country.mmdb"
     else
       clash_Country_download_url="https://raw.githubusercontent.com/alecthw/mmdb_china_ip_list/release/Country.mmdb"
     fi
@@ -778,7 +778,7 @@ download_clashmeta_yacd () {
     fi
 
     if [ "$update_git" != "原作者GitHub" ];then
-      clashmeta_yacd_download_url="${update_url}/bin/yacd_meta.zip"
+      clashmeta_yacd_download_url="${update_url}/bin/dashboard/yacd_meta.zip"
     else
       clashmeta_yacd_download_url="https://github.com/MetaCubeX/Yacd-meta/archive/gh-pages.zip"
     fi
@@ -801,7 +801,7 @@ download_clashmeta_dashboard () {
     fi 
 
     if [ "$update_git" != "原作者GitHub" ];then
-      clashmeta_dashboard_download_url="${update_url}/bin/dashboard_meta.zip"
+      clashmeta_dashboard_download_url="${update_url}/bin/dashboard/dashboard_meta.zip"
     else
       clashmeta_dashboard_download_url="https://github.com/MetaCubeX/Razord-meta/archive/gh-pages.zip"
     fi
@@ -820,9 +820,9 @@ download_clashmeta_dashboard () {
 
 download_geoip () {
     if [ "$update_git" != "原作者GitHub" ];then
-      geoip_download_url="${update_url}/bin/geoip.dat"
+      geoip_download_url="${update_url}/bin/geodata/geoip.dat"
     else
-      geoip_download_url="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
+      geoip_download_url="https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat"
     fi
     echo -e "${green}Start download GeoIP.dat from ${geoip_download_url}${end}" 
     webget2  /tmp/geoip.dat  ${url_cdn}${geoip_download_url}
@@ -838,9 +838,9 @@ download_geoip () {
 
 download_geosite () {
     if [ "$update_git" != "原作者GitHub" ];then
-      geosite_download_url="${update_url}/bin/geosite.dat"
+      geosite_download_url="${update_url}/bin/geodata/geosite.dat"
     else
-      geosite_download_url="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
+      geosite_download_url="https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat"
     fi
     echo -e "${green}Start download GeoSite.dat from ${geosite_download_url}${end}" 
     webget2  /tmp/geosite.dat  ${url_cdn}${geosite_download_url}
@@ -935,7 +935,7 @@ download_mosdns_config () {
 
 download_direct_list () {
     if [ "$update_git" != "原作者GitHub" ];then
-      direct_list_download_url="${update_url}/bin/direct-list.txt"
+      direct_list_download_url="${update_url}/bin/geodata/direct-list.txt"
     else
       direct_list_download_url="https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/direct-list.txt"
     fi
@@ -951,7 +951,7 @@ download_direct_list () {
 
 download_reject_list () {
     if [ "$update_git" != "原作者GitHub" ];then
-      reject_list_download_url="${update_url}/bin/reject-list.txt"
+      reject_list_download_url="${update_url}/bin/geodata/reject-list.txt"
     else
       reject_list_download_url="https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/reject-list.txt"
     fi
@@ -967,7 +967,7 @@ download_reject_list () {
 
 download_CN_ip_cidr () {
     if [ "$update_git" != "原作者GitHub" ];then
-      CN_ip_download_url="${update_url}/bin/CN-ip-cidr.txt"
+      CN_ip_download_url="${update_url}/bin/geodata/CN-ip-cidr.txt"
     else
       CN_ip_download_url="https://raw.githubusercontent.com/Hackl0us/GeoIP2-CN/release/CN-ip-cidr.txt"
     fi
@@ -1477,7 +1477,7 @@ download_cn_ip() {
     fi
 
     if [ "$update_git" != "原作者GitHub" ];then
-      china_ip_list_download_url="${update_url}/bin/china_ip_list.txt"
+      china_ip_list_download_url="${update_url}/bin/geodata/china_ip_list.txt"
     else
       china_ip_list_download_url="https://raw.githubusercontent.com/17mon/china_ip_list/master/china_ip_list.txt"
     fi
@@ -1684,8 +1684,8 @@ config_update_git(){
     setconfig url_cdn \'\'
   elif [ "$num" = 2 ];then
     # sed -i '/url_cdn = */'d $ccfg
-    setconfig update_git AutoClash库下载-CDN源
-    setconfig update_url "https://fastly.jsdelivr.net/gh/gdfsnhsw/Autoclash@master"
+    setconfig update_git JSdelivr-CF源
+    setconfig update_url "https://testingcf.jsdelivr.net/gh/gdfsnhsw/Autoclash@master"
     setconfig url_cdn \'\'
   elif [ "$num" = 3 ];then
     # sed -i '/url_cdn = */'d $ccfg
@@ -1708,7 +1708,7 @@ config_ip_dns(){
     rm -rf /etc/resolv.conf
     cat << EOF > /etc/resolv.conf
 nameserver $ip_dns
-nameserver 202.96.128.86
+nameserver 223.5.5.5
 EOF
 
     cat << EOF > /etc/network/interfaces
