@@ -1,4 +1,4 @@
-name: update_bin
+name: Update_bin
 
 on: 
 #   release:
@@ -9,7 +9,7 @@ on:
 #   branches: 
 #       - master
     schedule:
-        - cron: 0 8 * * 6
+        - cron: 0 18 * * 6
 #   watch:
 #       types: [started]
     workflow_dispatch:
@@ -57,6 +57,8 @@ jobs:
         curl -kfSL -o geodata/geoip.dat https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat
         curl -kfSL -o geodata/geosite-lite.dat https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite-lite.dat
         curl -kfSL -o geodata/geosite.dat https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+        curl -kfSL -o geodata/cn.txt https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/cn.txt
+        curl -kfSL -o geodata/cn_domain.yaml https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/cn_domain.yaml
         curl -kfSL -o geodata/china_ip_list.txt https://raw.githubusercontent.com/17mon/china_ip_list/master/china_ip_list.txt
         curl -kfSL -o geodata/direct-list.txt https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/direct-list.txt
         curl -kfSL -o geodata/reject-list.txt https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/reject-list.txt
