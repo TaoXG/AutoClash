@@ -52,6 +52,7 @@ rule-providers:
   Speedtest: { <<: *RULE, path: ./Provider/RuleSet/Speedtest.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Speedtest/Speedtest.yaml }
 
 rules:
+  - AND,(AND,(DST-PORT,443),(NETWORK,UDP)),(GEOSITE,geolocation-!cn),REJECT # quic
   - RULE-SET,Lan,🎯 全球直连
   - RULE-SET,NTPService,🎯 全球直连
   - RULE-SET,PrivateTracker,🎯 全球直连
