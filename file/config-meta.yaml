@@ -38,18 +38,18 @@ proxy-groups:
   - { name: '🎯 全球直连', <<: *SELECT, proxies: [DIRECT] }
 
 rule-providers:
-  Lan: { <<: *RULE, path: ./Provider/RuleSet/Lan.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Lan/Lan.yaml } #本地局域网地址
-  PrivateTracker: { <<: *RULE, path: ./Provider/RuleSet/PrivateTracker.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/PrivateTracker/PrivateTracker.yaml } # PT下载
-  CloudCN: { <<: *RULE, path: ./Provider/RuleSet/CloudCN.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Cloud/CloudCN/CloudCN.yaml } # 国内云计算
-  NTPService: { <<: *RULE, path: ./Provider/RuleSet/NTPService.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/NTPService/NTPService.yaml }
-  PayPal: { <<: *RULE, path: ./Provider/RuleSet/PayPal.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/PayPal/PayPal.yaml }
-  OneDrive: { <<: *RULE, path: ./Provider/RuleSet/OneDrive.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/OneDrive/OneDrive.yaml }
-  Microsoft: { <<: *RULE, path: ./Provider/RuleSet/Microsoft.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Microsoft/Microsoft.yaml }
-  Apple: { <<: *RULE, path: ./Provider/RuleSet/Apple.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Apple/Apple.yaml }
-  Telegram: { <<: *RULE, path: ./Provider/RuleSet/Telegram.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Telegram/Telegram.yaml }
-  Game: { <<: *RULE, path: ./Provider/RuleSet/Game.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Game/Game.yaml }
-  Netflix: { <<: *RULE, path: ./Provider/RuleSet/Netflix.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Netflix/Netflix.yaml }
-  GlobalMedia: { <<: *RULE, path: ./Provider/RuleSet/GlobalMedia.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/GlobalMedia/GlobalMedia_Classical.yaml }
+  Lan: { <<: *CLASSICAL, path: ./Provider/RuleSet/Lan.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Lan/Lan.yaml } #本地局域网地址
+  PrivateTracker: { <<: *CLASSICAL, path: ./Provider/RuleSet/PrivateTracker.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/PrivateTracker/PrivateTracker.yaml } # PT下载
+  CloudCN: { <<: *CLASSICAL, path: ./Provider/RuleSet/CloudCN.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Cloud/CloudCN/CloudCN.yaml } # 国内云计算
+  NTPService: { <<: *DOMAIN, path: ./Provider/RuleSet/NTPService.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/NTPService/NTPService.yaml }
+  PayPal: { <<: *DOMAIN, path: ./Provider/RuleSet/PayPal.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/PayPal/PayPal.yaml }
+  OneDrive: { <<: *DOMAIN, path: ./Provider/RuleSet/OneDrive.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/OneDrive/OneDrive.yaml }
+  Microsoft: { <<: *DOMAIN, path: ./Provider/RuleSet/Microsoft.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Microsoft/Microsoft.yaml }
+  Apple: { <<: *CLASSICAL, path: ./Provider/RuleSet/Apple.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Apple/Apple.yaml }
+  Telegram: { <<: *CLASSICAL, path: ./Provider/RuleSet/Telegram.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Telegram/Telegram.yaml }
+  Game: { <<: *CLASSICAL, path: ./Provider/RuleSet/Game.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Game/Game.yaml }
+  Netflix: { <<: *DOMAIN, path: ./Provider/RuleSet/Netflix.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Netflix/Netflix.yaml }
+  GlobalMedia: { <<: *CLASSICAL, path: ./Provider/RuleSet/GlobalMedia.yaml, url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/GlobalMedia/GlobalMedia_Classical.yaml }
 
 rules:
   - AND,(AND,(DST-PORT,443),(NETWORK,UDP)),(GEOSITE,geolocation-!cn),REJECT # quic
