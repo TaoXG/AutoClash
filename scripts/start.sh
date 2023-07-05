@@ -208,14 +208,8 @@ modify_yaml(){
     fi
   }
   #域名嗅探配置
-  [ "$sniffer" = "已启用" ] && [ "$clashcore" = "clashmeta" ] && sniffer_set="sniffer: {enable: true, skip-domain: [Mijia Cloud], sniff: {tls: {ports: [443, 8443]}, http: {ports: [80, 8080-8880], override-destination: true}}}"
+  [ "$sniffer" = "已开启" ] && [ "$clashcore" = "clashmeta" ] && sniffer_set="sniffer: {enable: true, skip-domain: [Mijia Cloud], sniff: {tls: {ports: [443, 8443]}, http: {ports: [80, 8080-8880], override-destination: true}}}"
   [ "$clashcore" = "clashpre" ] && [ "$dns_mod" = "redir_host" ] && exper="experimental: {ignore-resolve-fail: true, interface-name: '$eth_n', sniff-tls-sni: true}"
-  #Meta内核专属配置
-  [ "$clashcore" = 'clashmeta' ] && {
-    find_process="find-process-mode: off"
-    unified_delay="unified-delay: true"
-    tcp_concurrent="tcp-concurrent: true"
-  }
   #设置目录
   yaml=$clashdir/config.yaml
   tmpdir=/tmp/clash_$USER
@@ -253,12 +247,22 @@ $tun
 $exper
 $dns
 $sniffer_set
-# Meta内核专属配置
-$find_process
-$unified_delay
-$tcp_concurrent
-#
 EOF
+  if [ "$clashcore" = "clashmeta" ];then
+  cat > $tmpdir/user_meta.yaml <<EOF
+### Meta内核专属配置
+find-process-mode: off
+unified-delay: true
+tcp-concurrent: true
+geodata-mode: true 
+geodata-loader: standard
+geox-url:
+  geoip: "https://testingcf.jsdelivr.net/gh/gdfsnhsw/meta-rules-dat@release/geoip.dat"
+  geosite: "https://testingcf.jsdelivr.net/gh/gdfsnhsw/meta-rules-dat@release/geosite.dat"
+  mmdb: "https://testingcf.jsdelivr.net/gh/gdfsnhsw/meta-rules-dat@release/country.mmdb"
+###  
+EOF
+  fi
 ###################################
   #读取本机hosts并生成配置文件
   if [ "$hosts_opt" != "未启用" ] && [ -z "$(grep -E '^hosts:' $clashdir/user.yaml 2>/dev/null)" ];then
@@ -284,7 +288,8 @@ EOF
   [ -f $clashdir/user.yaml ] && yaml_user=$clashdir/user.yaml
   [ -f $tmpdir/hosts.yaml ] && yaml_hosts=$tmpdir/hosts.yaml
   [ -f $tmpdir/proxy.yaml ] && yaml_proxy=$tmpdir/proxy.yaml
-  cut -c 1- $tmpdir/set.yaml $yaml_hosts $yaml_user $yaml_proxy > $tmpdir/config.yaml
+  [ -f $tmpdir/user_meta.yaml ] && yaml_user_meta=$tmpdir/user_meta.yaml
+  cut -c 1- $tmpdir/set.yaml $yaml_user_meta $yaml_hosts $yaml_user $yaml_proxy > $tmpdir/config.yaml
   # #插入自定义规则
   sed -i "/#自定义规则/d" $tmpdir/config.yaml
   space_rules=$(sed -n '/^rules/{n;p}' $tmpdir/proxy.yaml | grep -oE '^ *') #获取空格数
@@ -300,6 +305,7 @@ EOF
   rm -f $tmpdir/set.yaml
   rm -f $tmpdir/proxy.yaml
   rm -f $tmpdir/hosts.yaml
+  rm -f $tmpdir/user_meta.yaml
 }
 
 afstart(){
