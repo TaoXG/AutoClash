@@ -50,27 +50,32 @@ jobs:
             fi
           fi
         done
+        mkdir tmpV4
+        mkdir optV4
         for((i=0;i<3;i++));do
           wget "https://github.com/IrineSistiana/mosdns/releases/download/v4.5.3/mosdns-linux-${archs[i]}.zip"
-          unzip -o -d ./opt mosdns-linux-${archs[i]}.zip
+          unzip -o -d ./optV4 mosdns-linux-${archs[i]}.zip
           rm -fr mosdns-linux-${archs[i]}.zip
-          mv ./opt/mosdns ./tmp/mosdns-linux-${new_name[i]}
-          chmod +x ./tmp/mosdns-linux-${new_name[i]}
+          mv ./optV4/mosdns ./tmpV4/mosdns-linux-${new_name[i]}
+          chmod +x ./tmpV4/mosdns-linux-${new_name[i]}
           if [ "${archs[i]}" != "armv5" ];then
             if [[ ${archs[i]} = mips* ]];then
-              ./upx-3.93-amd64_linux/upx ./tmp/mosdnsV4-linux-${new_name[i]}
+              ./upx-3.93-amd64_linux/upx ./tmpV4/mosdnsV4-linux-${new_name[i]}
             else
-              ./upx-3.96-amd64_linux/upx ./tmp/mosdnsV4-linux-${new_name[i]}
+              ./upx-3.96-amd64_linux/upx ./tmpV4/mosdnsV4-linux-${new_name[i]}
             fi
           fi
         done
         rm -fr upx*
         rm -fr ./opt
+        rm -fr ./optV4
     - name: Update
       run: |
         rm -fr ./bin/mosdns/*
         cp ./tmp/* ./bin/mosdns/
+        cp ./tmpV4/* ./bin/mosdns/
         rm -fr ./tmp
+        rm -fr ./tmpV4
         cd \bin
         sed -i '/mosdns_v*/'d version
         echo mosdns_v=${download_version} >> version
