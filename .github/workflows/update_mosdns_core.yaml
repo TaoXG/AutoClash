@@ -50,6 +50,20 @@ jobs:
             fi
           fi
         done
+        for((i=0;i<3;i++));do
+          wget "https://github.com/IrineSistiana/mosdns/releases/download/v4.5.3/mosdns-linux-${archs[i]}.zip"
+          unzip -o -d ./opt mosdns-linux-${archs[i]}.zip
+          rm -fr mosdns-linux-${archs[i]}.zip
+          mv ./opt/mosdns ./tmp/mosdns-linux-${new_name[i]}
+          chmod +x ./tmp/mosdns-linux-${new_name[i]}
+          if [ "${archs[i]}" != "armv5" ];then
+            if [[ ${archs[i]} = mips* ]];then
+              ./upx-3.93-amd64_linux/upx ./tmp/mosdnsV4-linux-${new_name[i]}
+            else
+              ./upx-3.96-amd64_linux/upx ./tmp/mosdnsV4-linux-${new_name[i]}
+            fi
+          fi
+        done
         rm -fr upx*
         rm -fr ./opt
     - name: Update
