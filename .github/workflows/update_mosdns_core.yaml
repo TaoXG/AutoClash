@@ -60,9 +60,9 @@ jobs:
           chmod +x ./tmpV4/mosdns-linux-${new_name[i]}
           if [ "${archs[i]}" != "armv5" ];then
             if [[ ${archs[i]} = mips* ]];then
-              ./upx-3.93-amd64_linux/upx ./tmpV4/mosdnsV4-linux-${new_name[i]}
+              ./upx-3.93-amd64_linux/upx ./tmpV4/mosdns-linux-${new_name[i]}
             else
-              ./upx-3.96-amd64_linux/upx ./tmpV4/mosdnsV4-linux-${new_name[i]}
+              ./upx-3.96-amd64_linux/upx ./tmpV4/mosdns-linux-${new_name[i]}
             fi
           fi
         done
@@ -73,7 +73,7 @@ jobs:
       run: |
         rm -fr ./bin/mosdns/*
         cp ./tmp/* ./bin/mosdns/
-        cp ./tmpV4/* ./bin/mosdns/
+        cp ./tmpV4/* ./bin/mosdnsV4/
         rm -fr ./tmp
         rm -fr ./tmpV4
         cd \bin
