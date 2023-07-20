@@ -60,5 +60,5 @@ jobs:
     - name: Commit and push
       run: |
         git config --global user.email "gdfsnhsw@gmail.com" && git config --global user.name "Bot"
-        git add . && git commit -m "更新Mosdns内核至v4.5.3" || exit 0
+        git add . && git commit -m "更新MosdnsV4内核至v4.5.3" || exit 0
         git push
