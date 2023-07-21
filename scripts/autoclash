@@ -18,7 +18,7 @@ purpleb="\033[1;35m"
 lightblue="\033[0;36m"
 lightblueb="\033[1;36m"
 
-sh_ver="2.2.2"
+sh_ver="2.3.0"
 
 cpu=$(hostnamectl | grep Architecture: | awk '{print $2}')
 system=$(cat /etc/issue | awk '{print $1}')
@@ -49,6 +49,10 @@ clashmeta_version_file="${bindir}/version_clashmeta"
 mosdns_dir="${auto_dir}/mosdns"
 mosdns_bin="${mosdns_dir}/mosdns"
 mosdns_version_file="${mosdns_dir}/version_mosdns"
+
+######### easymosdns #########
+easymosdns_dir="${auto_dir}/easymosdns"
+easymosdns_bin="${easymosdns_dir}/mosdns"
 
 ######### subconverter #########
 sub_dir="${auto_dir}/subconverter"
@@ -219,6 +223,27 @@ ConditionFileIsExecutable=${mosdns_bin}
 StartLimitInterval=5
 StartLimitBurst=10
 ExecStart=${mosdns_bin} "start" "--as-service" "-d" "${mosdns_dir}/" "-c" "config.yaml"
+
+Restart=always
+
+RestartSec=120
+EnvironmentFile=-/etc/sysconfig/mosdns
+
+[Install]
+WantedBy=multi-user.target
+EOF
+}
+
+set_easymosdns_service() {
+    cat << EOF > /etc/systemd/system/mosdns.service
+[Unit]
+Description=A DNS forwarder
+ConditionFileIsExecutable=${easymosdns_bin}
+
+[Service]
+StartLimitInterval=5
+StartLimitBurst=10
+ExecStart=${easymosdns_bin} "start" "--as-service" "-d" "${easymosdns_dir}/" "-c" "config.yaml"
 
 Restart=always
 
@@ -409,7 +434,7 @@ EOF
     echo -e "${green}系统升级完成!${end}"
 
     echo -e "${green}安装软件,请稍候! 大概5-10分钟!${end}"     
-    apt -y install htop sudo strace curl wget unzip nftables ntpdate net-tools gawk jq >> /dev/null 2>&1
+    apt -y install htop sudo strace curl wget unzip nftables ntpdate net-tools gawk jq bc >> /dev/null 2>&1
     rm /etc/localtime
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
     ntpdate cn.pool.ntp.org >> /dev/null 2>&1
@@ -868,7 +893,7 @@ install_mosdns() {
     fi 
 
     if [ "$update_git" != "原作者GitHub" ];then
-      mosdns_download_url="${update_url}/bin/mosdns/mosdns-${cpucore}"
+      mosdns_download_url="${update_url}/bin/mosdns/mosdns-${cpucore2}"
       echo -e "${green}Start download Mosdns from ${mosdns_download_url}${end}" 
       webget2 /tmp/mosdns/mosdns ${url_cdn}${mosdns_download_url}
     else
@@ -1035,7 +1060,7 @@ update_mosdns_y() {
     [ -f ${mosdns_bin} ] && mv ${mosdns_bin} ${autobin_dir}/mosdns.old
 
     if [ "$update_git" != "原作者GitHub" ];then
-      remote_mosdns_download_url="${update_url}/bin/mosdns/mosdns-${cpucore}"
+      remote_mosdns_download_url="${update_url}/bin/mosdns/mosdns-${cpucore2}"
       echo -e "${green}Start download Mosdns from ${remote_mosdns_download_url}${end}" 
       webget2 ${mosdns_bin} ${url_cdn}${remote_mosdns_download_url}
     else
@@ -1067,6 +1092,49 @@ update_mosdns_y() {
     echo ${new_mosdns_version} > ${mosdns_version_file}
     echo -e "${green}Mosdns has been updated to ${new_mosdns_version}.${end}"
     restart_mosdns
+}
+
+install_easymosdns() {
+    getcpucore2
+    if [ ! -d "/tmp/mosdnsV4" ]; then
+      mkdir /tmp/mosdnsV4
+    fi
+
+    if [ "$update_git" != "原作者GitHub" ];then
+      mosdns_download_url="${update_url}/bin/mosdnsV4/mosdns-${cpucore2}"
+      echo -e "${green}Start download MosdnsV4.5.3 from ${mosdns_download_url}${end}" 
+      webget2 /tmp/mosdnsV4/mosdns ${url_cdn}${mosdns_download_url}
+      echo -e "${green}Start download EasyMosdns from https://git.168828.xyz/root/easymosdns/archive/main.tar.gz${end}" 
+      webget2 /tmp/mosdnsV4/easymosdns.tar.gz https://git.168828.xyz/root/easymosdns/archive/main.tar.gz
+      cd /tmp/mosdnsV4
+      tar xzf easymosdns.tar.gz  >> /dev/null 2>&1
+      mv easymosdns ${easymosdns_dir}
+    else    
+      mosdns_download_url=https://github.com/IrineSistiana/mosdns/releases/download/v4.5.3/mosdns-${cpucore2}.zip
+      if [ "${mosdns_download_url}" == "" ]; then
+          echo -e "${red}No compatible Mosdns for your platform.${end}"
+          exit 1
+      fi
+      echo -e "${green}Start download MosdnsV4.5.3 from ${mosdns_download_url}${end}" 
+      webget2 /tmp/mosdnsV4/mosdns.zip ${url_cdn}${mosdns_download_url}
+      if [ ! -f "/tmp/mosdnsV4/mosdns.zip" ]; then
+          echo -e "${red}Failed to download MosdnsV4.5.3.${end}"
+          exit 1
+      fi
+      cd /tmp/mosdnsV4
+      unzip /tmp/mosdnsV4/mosdns.zip  >> /dev/null 2>&1
+      echo -e "${green}Start download EasyMosdns from https://mirror.apad.pro/dns/easymosdns.tar.gz${end}" 
+      webget2 /tmp/mosdnsV4/easymosdns.tar.gz https://mirror.apad.pro/dns/easymosdns.tar.gz
+      tar xzf easymosdns.tar.gz  >> /dev/null 2>&1
+      mv easymosdns ${easymosdns_dir}
+    fi
+    echo -e "${green}Start download config.yaml from https://git.168828.xyz/root/AutoClash/raw/branch/main/file/config-mosdnsV4.yml${end}" 
+    webget2 ${easymosdns_dir}/config.yaml https://git.168828.xyz/root/AutoClash/raw/branch/main/file/config-mosdnsV4.yml
+    rm -rf ${easymosdns_bin}
+    mv /tmp/mosdnsV4/mosdns ${easymosdns_bin}
+    chmod +x ${easymosdns_bin}
+    rm -rf /tmp/mosdnsV4
+
 }
 
 install_subconverter() {
@@ -1129,7 +1197,7 @@ install_subconverter() {
 [Profile]
 #调用说明:https://github.com/tindy2013/subconverter/blob/master/README-cn.md
 target=clash
-scv=true
+scv=false
 tfo=false
 fdn=true
 emoji=true
@@ -1803,14 +1871,6 @@ reboot_show_menu() {
     reboot          
 }
 
-clashstart(){
-    echo -----------------------------------------------
-    source ${sps_dir}/start.sh modify_yaml
-    systemctl start clash.service
-    sleep 1
-    show_menu
-}
-
 checkrestart(){
   echo -----------------------------------------------
   echo -e "\033[32m检测到已变更的内容，请重启clash服务！\033[0m"
@@ -2386,8 +2446,7 @@ show_menu() {
       restart_clash
       before_show_menu
     elif [ "$num" = 2 ]; then
-      restart_mosdns
-      clashcfg
+        restart_mosdns
       before_show_menu
     elif [ "$num" = 3 ]; then
       restart_subconverter
@@ -2610,19 +2669,15 @@ set_redir_mod() {
     echo -----------------------------------------------
     read -e -p "请输入对应数字 > " num
     if [ "$num" = 1 ];then
-      # sed -i '/redir_mod=*/'d $ccfg
       setconfig redir_mod Redir模式
       clashcfg
     elif [ "$num" = 2 ];then
-      # sed -i '/redir_mod=*/'d $ccfg
       setconfig redir_mod 混合模式
       clashcfg
     elif [ "$num" = 3 ];then
-      # sed -i '/redir_mod=*/'d $ccfg
       setconfig redir_mod Tun模式
       clashcfg
     elif [ "$num" = 4 ];then
-      # sed -i '/redir_mod=*/'d $ccfg
       setconfig redir_mod TProxy模式
       clashcfg
     elif [ "$num" = 0 ];then
@@ -2657,47 +2712,6 @@ set_dns_mod() {
     fi
 }
 
-setup_menu() {
-    getipv4
-    source $ccfg
-    echo -----------------------------------------------
-    echo -e "\033[30;43m欢迎使用AutoClash功能设置菜单${end}"
-    echo -----------------------------------------------
-    echo -e "${yellow}AdGuardHome:${end}" http://${local_ip}:3000
-    echo -e "${yellow}用户名:${end}      autoclash"
-    echo -e "${yellow}密码:${end}        autoclash"
-    echo -----------------------------------------------
-    echo -e "1. ${green}修改 ${end}本机地址:       ${lightblue}${ipv4}${end}"
-    echo -e "2. ${green}修改 ${end}下载地址:       ${lightblue}$update_git${end}"
-    if [ "$update_git" = "原作者GitHub" ];then
-      echo -e "3. ${green}修改 ${end}代理地址:       ${lightblue}$url_cdn${end}"
-    fi
-    # echo -e "4. ${green}启用 ${end}AdGuardHome:       ${lightblue}$adg_home${end}"
-    echo -----------------------------------------------
-    echo -e "0. 返回上级菜单"
-    echo -----------------------------------------------
-    echo && read -e -p "请输入选择 [1-3]: " num
-    case "${num}" in
-      1)  config_ip_dns
-          reboot_show_menu 
-    ;;
-      2)  config_update_git
-          setup_menu
-    ;;
-      3)  config_url_cdn
-          setup_menu
-    ;;
-    #   4)  set_adg_home
-    #       setup_menu
-    # ;;
-      0)  show_menu
-    ;;
-      *)  errornum
-          setup_menu
-    ;;
-    esac
-}
-
 set_adg_home() {
     echo -----------------------------------------------
     if [ "$adg_home" = "未启用" ];then
@@ -2720,6 +2734,87 @@ set_adg_home() {
       systemctl enable adguardhome >> /tmp/autoclash_setup.log 2>&1
       sed -i 's/53/5351/g' ${mosdns_dir}/config.yaml
       systemctl restart mosdns.service >> /dev/null 2>&1
+    fi
+}
+
+
+setup_menu() {
+    getipv4
+    source $ccfg
+    echo -----------------------------------------------
+    echo -e "\033[30;43m欢迎使用AutoClash功能设置菜单${end}"
+    echo -----------------------------------------------
+    echo -e "${yellow}AdGuardHome:${end}" http://${local_ip}:3000
+    echo -e "${yellow}用户名:${end}      autoclash"
+    echo -e "${yellow}密码:${end}        autoclash"
+    echo -e "${yellow}公网地址:${end}    ${ipv4}"
+    echo -----------------------------------------------
+    echo -e "1. ${green}更换 ${end}Mosdns版本:     ${lightblue}$mosdns_ver${end}"
+    echo -e "2. ${green}修改 ${end}本机地址:       ${lightblue}${local_ip}${end}"
+    echo -e "3. ${green}修改 ${end}下载地址:       ${lightblue}$update_git${end}"
+    if [ "$update_git" = "原作者GitHub" ];then
+      echo -e "4. ${green}修改 ${end}代理地址:       ${lightblue}$url_cdn${end}"
+    fi
+    # echo -e "5. ${green}启用 ${end}AdGuardHome:       ${lightblue}$adg_home${end}"
+    echo -----------------------------------------------
+    echo -e "0. 返回上级菜单"
+    echo -----------------------------------------------
+    echo && read -e -p "请输入选择 [1-3]: " num
+    case "${num}" in
+      1)  set_dns_server
+          setup_menu
+    ;;
+      2)  config_ip_dns
+          reboot_show_menu 
+    ;;
+      3)  config_update_git
+          setup_menu
+    ;;
+      4)  config_url_cdn
+          setup_menu
+    ;;
+    #   5)  set_adg_home
+    #       setup_menu
+    # ;;
+      0)  show_menu
+    ;;
+      *)  errornum
+          setup_menu
+    ;;
+    esac
+}
+
+set_dns_server() {
+    echo -----------------------------------------------
+    echo -e "1. ${green}Mosdns${end}:      V5版本,国内DoH+国外fakeip"
+    echo -e "2. ${green}EasyMosdns${end}:  V4版本,支持ECS,Redis等"
+    echo -----------------------------------------------
+    echo -e "0. 返回上级菜单"
+    echo -----------------------------------------------
+    read -e -p "请输入对应数字 > " num
+    if [ "$num" = 1 ];then
+      sed -i '/mosdns_ver=*/'d $ccfg
+      setconfig mosdns_ver MosdnsV5
+      systemctl stop mosdns.service >> /dev/null 2>&1
+      set_mosdns_service
+      restart_mosdns
+      setup_menu
+    elif [ "$num" = 2 ];then
+      if [ ! -d "${easymosdns_dir}" ]; then
+        echo -e "${green}正在安装EasyMosdns...${end}"
+        install_easymosdns
+      fi 
+      sed -i '/mosdns_ver=*/'d $ccfg
+      setconfig mosdns_ver EasyMosdns
+      systemctl stop mosdns.service >> /dev/null 2>&1
+      set_easymosdns_service
+      restart_mosdns
+      setup_menu
+    elif [ "$num" = 0 ];then
+      setup_menu
+    else
+      errornum
+      set_dns_server        
     fi
 }
 
