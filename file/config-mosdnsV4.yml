@@ -240,13 +240,13 @@ plugins:
           #socks5: "127.0.0.1:1080"
 
   # 转发至分流服务器的插件
-  - tag: forward_clash
+  - tag: forward_easymosdns
     type: fast_forward
     args:
       upstream:
-        - addr: "127.0.0.1:5352"      
-        #- addr: "https://doh.apad.pro/dns-query"
-          #bootstrap: "119.29.29.29"
+        #- addr: "127.0.0.1:5352"      
+        - addr: "https://doh.apad.pro/dns-query"
+          bootstrap: "119.29.29.29"
           #dial_addr: "ip:port"
           #enable_http3: true
 
@@ -299,7 +299,7 @@ plugins:
             - ecs_global
             - primary:
                 # 默认用分流服务器
-                - forward_clash
+                - forward_easymosdns
               secondary:
                 # 超时用远程服务器
                 - forward_remote
@@ -324,7 +324,7 @@ plugins:
                 - ttl_1m
               secondary:
                 # 超时用分流服务器
-                - forward_clash
+                - forward_easymosdns
                 - ttl_5m
               fast_fallback: 25
               always_standby: false
@@ -341,7 +341,7 @@ plugins:
             - ecs_global
             - primary:
                 # 默认用分流服务器
-                - forward_clash
+                - forward_easymosdns
               secondary:
                 # 超时用远程服务器
                 - forward_remote
@@ -355,7 +355,7 @@ plugins:
         - _prefer_ipv4
         - primary:
             # 默认用分流服务器
-            - forward_clash
+            - forward_easymosdns
             - if: response_server_failed
               exec:
                 - forward_local
@@ -363,7 +363,7 @@ plugins:
             - ecs_global
             - if: "(! ecs_is_cn) && (! response_has_local_ip) && [_response_valid_answer]"
               exec:
-                - forward_clash
+                - forward_easymosdns
           secondary:
             # 超时用本地分流器
             - forward_remote
