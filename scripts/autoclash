@@ -18,7 +18,7 @@ purpleb="\033[1;35m"
 lightblue="\033[0;36m"
 lightblueb="\033[1;36m"
 
-sh_ver="2.3.0"
+sh_ver="2.3.1"
 
 cpu=$(hostnamectl | grep Architecture: | awk '{print $2}')
 system=$(cat /etc/issue | awk '{print $1}')
@@ -1128,13 +1128,29 @@ install_easymosdns() {
       tar xzf easymosdns.tar.gz  >> /dev/null 2>&1
       mv easymosdns ${easymosdns_dir}
     fi
-    echo -e "${green}Start download config.yaml from https://git.168828.xyz/root/AutoClash/raw/branch/main/file/config-mosdnsV4.yml${end}" 
-    webget2 ${easymosdns_dir}/config.yaml https://git.168828.xyz/root/AutoClash/raw/branch/main/file/config-mosdnsV4.yml
+    download_easymosdns_config
     rm -rf ${easymosdns_bin}
     mv /tmp/mosdnsV4/mosdns ${easymosdns_bin}
     chmod +x ${easymosdns_bin}
     rm -rf /tmp/mosdnsV4
 
+}
+
+download_easymosdns_config () {
+    if [ "$update_git" != "原作者GitHub" ];then
+      config_download_url="${update_url}/file/config-mosdnsV4.yaml"
+    else
+      config_download_url="https://raw.githubusercontent.com/gdfsnhsw/AutoClash/main/file/config-mosdnsV4.yaml"
+    fi
+    echo -e "${green}Start download EasyMosdns Config.yaml from ${config_download_url}${end}" 
+    webget2  /tmp/config.yaml  ${url_cdn}${config_download_url}
+    if [ -f "/tmp/config.yaml" ]; then
+      [ -f "${easymosdns_dir}/config.yaml" ] && rm -rf "${easymosdns_dir}/config.yaml"
+      mv /tmp/config.yaml ${easymosdns_dir}/config.yaml
+    else
+      echo -e "${red}Failed to download EasyMosdns Config.yaml${end}"
+      exit 1
+    fi
 }
 
 install_subconverter() {
@@ -2786,8 +2802,8 @@ setup_menu() {
 
 set_dns_server() {
     echo -----------------------------------------------
-    echo -e "1. ${green}Mosdns${end}:      V5版本,国内DoH+国外fakeip"
-    echo -e "2. ${green}EasyMosdns${end}:  V4版本,支持ECS,Redis等"
+    echo -e "1. ${green}Mosdns${end}:      本地DNSPod与AliDNS(DoH),远程FakeIP"
+    echo -e "2. ${green}EasyMosdns${end}:  支持ECS的无污染DNS服务器"
     echo -----------------------------------------------
     echo -e "0. 返回上级菜单"
     echo -----------------------------------------------
@@ -2875,6 +2891,7 @@ EOF
           before_show_menu
     ;;
       7)  download_mosdns_config
+          download_easymosdns_config
           download_adguardhome_config
           before_show_menu
     ;;
