@@ -18,7 +18,7 @@ purpleb="\033[1;35m"
 lightblue="\033[0;36m"
 lightblueb="\033[1;36m"
 
-sh_ver="2.3.1"
+sh_ver="2.3.2"
 
 cpu=$(hostnamectl | grep Architecture: | awk '{print $2}')
 system=$(cat /etc/issue | awk '{print $1}')
@@ -927,12 +927,7 @@ install_mosdns() {
     chmod +x ${mosdns_bin}
     rm -rf /tmp/mosdns
 
-    download_mosdns_config
-    download_direct_list
-    download_reject_list
-    download_CN_ip_cidr
-    # download_geoip
-    # download_geosite    
+    download_mosdns_config  
 
     set_mosdns_service
     systemctl daemon-reload >> /tmp/autoclash_setup.log 2>&1
@@ -952,6 +947,17 @@ download_mosdns_config () {
     if [ -f "/tmp/config.yaml" ]; then
       [ -f "${mosdns_dir}/config.yaml" ] && rm -rf "${mosdns_dir}/config.yaml"
       mv /tmp/config.yaml ${mosdns_dir}/config.yaml
+      if [ ! -d "${mosdns_dir}/rules" ]; then
+        mkdir ${mosdns_dir}/rules
+        echo "# 污染域名" > ${mosdns_dir}/rules/grey_list.txt
+        echo "# hosts" > ${mosdns_dir}/rules/hosts.txt
+        echo "# 黑明单域名" > ${mosdns_dir}/rules/block_list.txt
+        echo "# 白明单域名" > ${mosdns_dir}/rules/white_list.txt
+        download_direct_list
+        download_reject_list
+        download_CN_ip_cidr
+        download_gfw
+      fi
     else
       echo -e "${red}Failed to download Mosdns Config.yaml${end}"
       exit 1
@@ -971,7 +977,7 @@ download_direct_list () {
       exit 1
     fi
     [ -f "${mosdns_dir}/direct-list.txt" ] && rm -rf "${mosdns_dir}/direct-list.txt"
-    mv /tmp/direct-list.txt ${mosdns_dir}/direct-list.txt
+    mv /tmp/direct-list.txt ${mosdns_dir}/rules/direct-list.txt
 }
 
 download_reject_list () {
@@ -987,7 +993,7 @@ download_reject_list () {
       exit 1
     fi
     [ -f "${mosdns_dir}/reject-list.txt" ] && rm -rf "${mosdns_dir}/reject-list.txt"
-    mv /tmp/reject-list.txt ${mosdns_dir}/reject-list.txt
+    mv /tmp/reject-list.txt ${mosdns_dir}/rules/reject-list.txt
 }
 
 download_CN_ip_cidr () {
@@ -1003,9 +1009,24 @@ download_CN_ip_cidr () {
       exit 1
     fi
     [ -f "${mosdns_dir}/CN-ip-cidr.txt" ] && rm -rf "${mosdns_dir}/CN-ip-cidr.txt"
-    mv /tmp/CN-ip-cidr.txt ${mosdns_dir}/CN-ip-cidr.txt
+    mv /tmp/CN-ip-cidr.txt ${mosdns_dir}/rules/CN-ip-cidr.txt
 }
 
+download_gfw () {
+    if [ "$update_git" != "原作者GitHub" ];then
+      gfw_download_url="${update_url}/bin/geodata/gfw.txt"
+    else
+      gfw_download_url="https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/gfw.txt"
+    fi
+    echo -e "${green}Start download gfw.txt from ${gfw_download_url}${end}" 
+    webget2  /tmp/gfw.txt  ${url_cdn}${gfw_download_url}
+    if [ ! -f "/tmp/gfw.txt" ]; then
+      echo -e "${red}Failed to download gfw.txt${end}"
+      exit 1
+    fi
+    [ -f "${mosdns_dir}/gfw.txt" ] && rm -rf "${mosdns_dir}/gfw.txt"
+    mv /tmp/gfw.txt ${mosdns_dir}/rules/gfw.txt
+}
 
 update_mosdns_y() {
     getcpucore
@@ -2892,7 +2913,9 @@ EOF
     ;;
       7)  download_mosdns_config
           download_easymosdns_config
+          restart_mosdns
           download_adguardhome_config
+          restart_adguardhome
           before_show_menu
     ;;
       8)  download_clash_dashboard
@@ -2907,6 +2930,7 @@ EOF
           download_direct_list
           download_reject_list
           download_CN_ip_cidr
+          download_gfw
           download_cn_ip
           before_show_menu
     ;;
