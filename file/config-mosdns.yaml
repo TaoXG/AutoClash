@@ -3,8 +3,24 @@ log:
   level: info
 
 plugins:
+
+  # 自定义hosts
+  - tag: hosts
+    type: hosts
+    args:
+      files:
+        - "./rules/hosts.txt"
+
+  # has_resp插件,用于简化配置文件
+  - tag: has_resp_sequence
+    type: sequence
+    args:
+      - matches:
+          - has_resp
+        exec: accept
+
   # 缓存
-  - tag: tag_cache
+  - tag: custom_cache
     type: cache
     args:
       size: 10240
@@ -12,7 +28,7 @@ plugins:
       dump_file: ./cache.dump
       dump_interval: 3600
 
-  # 转发至本地服务器 DoH服务器
+  # 转发至本地服务器
   - tag: forward_local
     type: forward
     args:
@@ -36,29 +52,27 @@ plugins:
           addr: "tcp://127.0.0.1:5352"
           enable_pipeline: true
 
-  # fallback 用本地服务器 sequence
-  # 返回不包含本地 ip 则 reject
+  # fallback的primary服务器
   - tag: local_ip_sequence
     type: sequence
     args:
       - exec: $forward_local
-      - matches: resp_ip &./CN-ip-cidr.txt
-        exec: accept
-      - exec: drop_resp
-  # fallback 用远程服务器 sequence
+      - matches: "!resp_ip &./rules/CN-ip-cidr.txt"   # 返回非国内ip则drop_resp
+        exec: drop_resp
+  # fallback的secondary服务器
   - tag: remote_sequence
     type: sequence
     args:
       - exec: $forward_remote
       - exec: accept
-  # fallback 用远程服务器 sequence
-  - tag: tag_fallback
+  # fallback服务器
+  - tag: fallback_ip
     type: fallback
     args:
       primary: local_ip_sequence
       secondary: remote_sequence
-      threshold: 500
-      always_standby: true
+      threshold: 500              # 无响应回滚阈值。单位毫秒。默认 500 。
+      always_standby: true        # 副可执行插件始终待命。
 
   # 主要的运行逻辑插件
   # sequence 插件中调用的插件 tag 必须在 sequence 前定义，
@@ -66,21 +80,37 @@ plugins:
   - tag: main_sequence
     type: sequence
     args:
-      - matches: qtype 12
+      - matches: qtype 12                     # 屏蔽 QTYPE 12
         exec: reject 0
-      - matches: qtype 65
+
+      - matches: qtype 65                     # 屏蔽 QTYPE 65
         exec: reject 0
-      - matches: qname &./reject-list.txt
+
+      - exec: $hosts                          # hosts
+      - exec: jump has_resp_sequence
+
+      - matches:
+          - qname &./rules/reject-list.txt    # 屏蔽广告
+          - qname &./rules/block_list.txt     # 屏蔽黑明单域名
         exec: reject 0
-      - exec: prefer_ipv4
-      - exec: $tag_cache
-      - matches: has_resp
-        exec: accept
-      - matches: qname &./direct-list.txt
-        exec: $forward_local
-      - matches: has_resp
-        exec: accept
-      - exec: $tag_fallback
+
+      - exec: prefer_ipv4                     # 让下游客户端支持双栈时优先使用 IPv4
+      - exec: $custom_cache                   # 缓存
+      - exec: jump has_resp_sequence
+
+      - matches:
+          - qname &./rules/gfw.txt            # gwf域名文件
+          - qname &./rules/grey_list.txt      # 用来存放被污染的域名
+        exec: $forward_remote                 # GFW域名和污染域名直接请求远程 DNS
+      - exec: jump has_resp_sequence
+
+      - matches: 
+          - qname &./rules/direct-list.txt    # 国内域名
+          - qname &./rules/white_list.txt     # 存放DDNS 和 其他白名单域名
+        exec: $forward_local                  # 国内域名请求本地 DNS
+      - exec: jump has_resp_sequence
+
+      - exec: $fallback_ip                    # fallback服务器
 
   # 启动 udp 服务器。
   - tag: udp_server
