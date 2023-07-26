@@ -94,13 +94,14 @@ plugins:
           - qname &./rules/block_list.txt     # 屏蔽黑明单域名
         exec: reject 0
 
+      - exec: prefer_ipv4                     # 让下游客户端支持双栈时优先使用 IPv4
+
       - matches:
           - qname &./rules/gfw.txt            # gwf域名文件
           - qname &./rules/grey_list.txt      # 用来存放被污染的域名
         exec: $forward_remote                 # GFW域名和污染域名直接请求远程 clash的fakeip
       - exec: jump has_resp_sequence
 
-      - exec: prefer_ipv4                     # 让下游客户端支持双栈时优先使用 IPv4
       - exec: $custom_cache                   # 缓存
       - exec: jump has_resp_sequence
 
