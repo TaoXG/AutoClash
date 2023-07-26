@@ -101,16 +101,6 @@ plugins:
       - exec: $custom_cache                   # 缓存
       - exec: jump has_resp_sequence
 
-      - matches: 
-          - qname &./rules/white_list.txt     # 存放DDNS 和 其他白名单域名
-        exec: $forward_local                  # 国内域名请求本地 DNS
-      - exec: jump has_resp_sequence
-
-      - matches: 
-          - qname &./rules/direct-list.txt    # 国内域名
-        exec: $forward_local                  # 国内域名请求本地 DNS
-      - exec: jump has_resp_sequence
-
       - matches:
           - qname &./rules/grey_list.txt      # 存放被污染的域名
         exec: $forward_remote                 # 污染域名直接请求远程 DNS
@@ -121,8 +111,17 @@ plugins:
         exec: $forward_remote                 # GFW域名直接请求远程 DNS
       - exec: jump has_resp_sequence
 
-      - exec: $fallback_ip                    # fallback服务器
+      - matches: 
+          - qname &./rules/white_list.txt     # 存放DDNS 和 其他白名单域名
+        exec: $forward_local                  # 白名单域名域名请求本地 DNS
+      - exec: jump has_resp_sequence
 
+      - matches: 
+          - qname &./rules/direct-list.txt    # 国内域名
+        exec: $forward_local                  # 国内域名请求本地 DNS
+      - exec: jump has_resp_sequence
+
+      - exec: $fallback_ip                    # fallback服务器
 
 
   # 启动 udp 服务器。
