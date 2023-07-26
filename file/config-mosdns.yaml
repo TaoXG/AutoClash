@@ -90,11 +90,7 @@ plugins:
       - exec: jump has_resp_sequence
 
       - matches:
-          - qname &./rules/block_list.txt     # 屏蔽黑明单域名
-        exec: reject 0
-
-      - matches:
-          - qname &./rules/reject-list.txt    # 屏蔽广告
+          - qname &./rules/reject-list.txt &./rules/block_list.txt    # 屏蔽广告 和 黑明单域名
         exec: reject 0
 
       - exec: prefer_ipv4                     # 让下游客户端支持双栈时优先使用 IPv4
@@ -102,27 +98,16 @@ plugins:
       - exec: jump has_resp_sequence
 
       - matches:
-          - qname &./rules/grey_list.txt      # 存放被污染的域名
-        exec: $forward_remote                 # 污染域名直接请求远程 DNS
-      - exec: jump has_resp_sequence
-
-      - matches:
-          - qname &./rules/gfw.txt            # gfw域名
-        exec: $forward_remote                 # GFW域名直接请求远程 DNS
+          - qname &./rules/gfw.txt &./rules/grey_list.txt             # gfw域名 和 存放被污染的域名
+        exec: $forward_remote                 # 请求远程 DNS
       - exec: jump has_resp_sequence
 
       - matches: 
-          - qname &./rules/white_list.txt     # 存放DDNS 和 其他白名单域名
-        exec: $forward_local                  # 白名单域名域名请求本地 DNS
-      - exec: jump has_resp_sequence
-
-      - matches: 
-          - qname &./rules/direct-list.txt    # 国内域名
-        exec: $forward_local                  # 国内域名请求本地 DNS
+          - qname &./rules/direct-list.txt &./rules/white_list.txt    # 国内域名 和 白名单域名
+        exec: $forward_local                  # 请求本地 DNS
       - exec: jump has_resp_sequence
 
       - exec: $fallback_ip                    # fallback服务器
-
 
   # 启动 udp 服务器。
   - tag: udp_server
