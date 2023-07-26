@@ -90,28 +90,40 @@ plugins:
       - exec: jump has_resp_sequence
 
       - matches:
-          - qname &./rules/reject-list.txt    # 屏蔽广告
           - qname &./rules/block_list.txt     # 屏蔽黑明单域名
         exec: reject 0
 
-      - exec: prefer_ipv4                     # 让下游客户端支持双栈时优先使用 IPv4
-
       - matches:
-          - qname &./rules/gfw.txt            # gwf域名文件
-          - qname &./rules/grey_list.txt      # 用来存放被污染的域名
-        exec: $forward_remote                 # GFW域名和污染域名直接请求远程 clash的fakeip
-      - exec: jump has_resp_sequence
+          - qname &./rules/reject-list.txt    # 屏蔽广告
+        exec: reject 0
 
+      - exec: prefer_ipv4                     # 让下游客户端支持双栈时优先使用 IPv4
       - exec: $custom_cache                   # 缓存
       - exec: jump has_resp_sequence
 
       - matches: 
-          - qname &./rules/direct-list.txt    # 国内域名
           - qname &./rules/white_list.txt     # 存放DDNS 和 其他白名单域名
         exec: $forward_local                  # 国内域名请求本地 DNS
       - exec: jump has_resp_sequence
 
+      - matches: 
+          - qname &./rules/direct-list.txt    # 国内域名
+        exec: $forward_local                  # 国内域名请求本地 DNS
+      - exec: jump has_resp_sequence
+
+      - matches:
+          - qname &./rules/grey_list.txt      # 用来存放被污染的域名
+        exec: $forward_remote                 # GFW域名和污染域名直接请求远程 clash的fakeip
+      - exec: jump has_resp_sequence
+
+      - matches:
+          - qname &./rules/gfw.txt            # gwf域名文件
+        exec: $forward_remote                 # GFW域名和污染域名直接请求远程 clash的fakeip
+      - exec: jump has_resp_sequence
+
       - exec: $fallback_ip                    # fallback服务器
+
+
 
   # 启动 udp 服务器。
   - tag: udp_server
