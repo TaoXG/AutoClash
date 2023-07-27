@@ -18,7 +18,7 @@ purpleb="\033[1;35m"
 lightblue="\033[0;36m"
 lightblueb="\033[1;36m"
 
-sh_ver="2.3.2"
+sh_ver="2.3.3"
 
 cpu=$(hostnamectl | grep Architecture: | awk '{print $2}')
 system=$(cat /etc/issue | awk '{print $1}')
@@ -47,6 +47,7 @@ clashmeta_version_file="${bindir}/version_clashmeta"
 
 ######### mosdns #########
 mosdns_dir="${auto_dir}/mosdns"
+mosdns_rules_dir="${auto_dir}/mosdns/rules"
 mosdns_bin="${mosdns_dir}/mosdns"
 mosdns_version_file="${mosdns_dir}/version_mosdns"
 
@@ -947,17 +948,18 @@ download_mosdns_config () {
     if [ -f "/tmp/config.yaml" ]; then
       [ -f "${mosdns_dir}/config.yaml" ] && rm -rf "${mosdns_dir}/config.yaml"
       mv /tmp/config.yaml ${mosdns_dir}/config.yaml
-      if [ ! -d "${mosdns_dir}/rules" ]; then
-        mkdir ${mosdns_dir}/rules
-        echo "# 污染域名" > ${mosdns_dir}/rules/grey_list.txt
-        echo "# hosts" > ${mosdns_dir}/rules/hosts.txt
-        echo "# 黑明单域名" > ${mosdns_dir}/rules/block_list.txt
-        echo "# 白明单域名" > ${mosdns_dir}/rules/white_list.txt
-        download_direct_list
-        download_reject_list
-        download_CN_ip_cidr
-        download_gfw
-      fi
+      [ ! -d "${mosdns_rules_dir}" ] && mkdir ${mosdns_rules_dir}
+      [ ! -f "${mosdns_rules_dir}/hosts.txt" ] && echo "# hosts" > ${mosdns_rules_dir}/hosts.txt
+      [ ! -f "${mosdns_rules_dir}/block_list.txt" ] && echo "# 黑明单域名" > ${mosdns_rules_dir}/block_list.txt
+      [ ! -f "${mosdns_rules_dir}/white_list.txt" ] && echo "# 白明单域名" > ${mosdns_rules_dir}/white_list.txt
+      [ ! -f "${mosdns_rules_dir}/grey_list.txt" ] && echo "# 灰明单域名" > ${mosdns_rules_dir}/grey_list.txt
+      [ ! -f "${mosdns_rules_dir}/ddns_list.txt" ] && echo "# DDNS 域名" > ${mosdns_rules_dir}/ddns_list.txt
+      [ ! -f "${mosdns_rules_dir}/local_ptr.txt" ] && echo "# PTR 黑名单" > ${mosdns_rules_dir}/local_ptr.txt
+      [ ! -f "${mosdns_rules_dir}/redirect.txt" ] && echo "# 重定向请求的域名" > ${mosdns_rules_dir}/redirect.txt
+      [ ! -f "${mosdns_rules_dir}/direct-list.txt" ] && download_direct_list
+      [ ! -f "${mosdns_rules_dir}/reject-list.txt" ] && download_reject_list
+      [ ! -f "${mosdns_rules_dir}/CN-ip-cidr.txt" ] && download_CN_ip_cidr
+      [ ! -f "${mosdns_rules_dir}/gfw.txt" ] && download_gfw
     else
       echo -e "${red}Failed to download Mosdns Config.yaml${end}"
       exit 1
@@ -977,7 +979,7 @@ download_direct_list () {
       exit 1
     fi
     [ -f "${mosdns_dir}/direct-list.txt" ] && rm -rf "${mosdns_dir}/direct-list.txt"
-    mv /tmp/direct-list.txt ${mosdns_dir}/rules/direct-list.txt
+    mv /tmp/direct-list.txt ${mosdns_rules_dir}/direct-list.txt
 }
 
 download_reject_list () {
@@ -993,7 +995,7 @@ download_reject_list () {
       exit 1
     fi
     [ -f "${mosdns_dir}/reject-list.txt" ] && rm -rf "${mosdns_dir}/reject-list.txt"
-    mv /tmp/reject-list.txt ${mosdns_dir}/rules/reject-list.txt
+    mv /tmp/reject-list.txt ${mosdns_rules_dir}/reject-list.txt
 }
 
 download_CN_ip_cidr () {
@@ -1009,7 +1011,7 @@ download_CN_ip_cidr () {
       exit 1
     fi
     [ -f "${mosdns_dir}/CN-ip-cidr.txt" ] && rm -rf "${mosdns_dir}/CN-ip-cidr.txt"
-    mv /tmp/CN-ip-cidr.txt ${mosdns_dir}/rules/CN-ip-cidr.txt
+    mv /tmp/CN-ip-cidr.txt ${mosdns_rules_dir}/CN-ip-cidr.txt
 }
 
 download_gfw () {
@@ -1025,7 +1027,7 @@ download_gfw () {
       exit 1
     fi
     [ -f "${mosdns_dir}/gfw.txt" ] && rm -rf "${mosdns_dir}/gfw.txt"
-    mv /tmp/gfw.txt ${mosdns_dir}/rules/gfw.txt
+    mv /tmp/gfw.txt ${mosdns_rules_dir}/gfw.txt
 }
 
 update_mosdns_y() {
@@ -1953,9 +1955,9 @@ restart_mosdns() {
     else
       echo -e "${red}Mosdns服务重启失败!${end}"
     fi
-    if [[ $# == 0 ]]; then
-      before_show_menu
-    fi
+    # if [[ $# == 0 ]]; then
+    #   before_show_menu
+    # fi
 }
 
 restart_subconverter() {
@@ -1967,9 +1969,9 @@ restart_subconverter() {
     else
       echo -e "${red}Subconverter服务重启失败!${end}"
     fi
-    if [[ $# == 0 ]]; then
-      before_show_menu
-    fi
+    # if [[ $# == 0 ]]; then
+    #   before_show_menu
+    # fi
 }
 
 restart_adguardhome() {
@@ -1981,9 +1983,9 @@ restart_adguardhome() {
     else
       echo -e "${red}AdGuardHome服务重启失败!${end}"
     fi
-    if [[ $# == 0 ]]; then
-      before_show_menu
-    fi
+    # if [[ $# == 0 ]]; then
+    #   before_show_menu
+    # fi
 }
 
 restart_all() {
@@ -2483,7 +2485,7 @@ show_menu() {
       restart_clash
       before_show_menu
     elif [ "$num" = 2 ]; then
-        restart_mosdns
+      restart_mosdns
       before_show_menu
     elif [ "$num" = 3 ]; then
       restart_subconverter
@@ -2669,8 +2671,10 @@ getscript(){
 
 set_clash_core() {
     echo -----------------------------------------------
-    echo -e "1. ${green}Clash.Premium${end}核心"
-    echo -e "2. ${green}Clash.Meta${end}核心"
+    echo -e "1. ${green}Clash.Premium${end}核心 ${lightblueb}官方高级内核${end}"
+    echo -e "   ${blueb}说明文档${end} https://lancellc.gitbook.io"
+    echo -e "2. ${green}Clash.Meta${end}核心    ${lightblueb}Meta内核,支持协议最全面${end}"
+    echo -e "   ${blueb}说明文档${end} https://docs.metacubex.one"
     echo -----------------------------------------------
     echo -e "0. 返回上级菜单"
     echo -----------------------------------------------
@@ -2823,8 +2827,8 @@ setup_menu() {
 
 set_dns_server() {
     echo -----------------------------------------------
-    echo -e "1. ${green}Mosdns${end}:      本地DNSPod与AliDNS(DoH),远程FakeIP"
-    echo -e "2. ${green}EasyMosdns${end}:  支持ECS的无污染DNS服务器"
+    echo -e "1. ${green}Mosdns${end}:      本地DNSPod与AliDNS,远程FakeIP"
+    echo -e "2. ${green}EasyMosdns${end}:  ECS的无污染DNS服务器,远程EasyMosdns(DoH)"
     echo -----------------------------------------------
     echo -e "0. 返回上级菜单"
     echo -----------------------------------------------
@@ -2835,7 +2839,7 @@ set_dns_server() {
       systemctl stop mosdns.service >> /dev/null 2>&1
       set_mosdns_service
       restart_mosdns
-      setup_menu
+      before_show_menu
     elif [ "$num" = 2 ];then
       if [ ! -d "${easymosdns_dir}" ]; then
         echo -e "${green}正在安装EasyMosdns...${end}"
@@ -2846,7 +2850,7 @@ set_dns_server() {
       systemctl stop mosdns.service >> /dev/null 2>&1
       set_easymosdns_service
       restart_mosdns
-      setup_menu
+      before_show_menu
     elif [ "$num" = 0 ];then
       setup_menu
     else
@@ -2893,38 +2897,48 @@ EOF
     echo && read -e -p "请输入选择 [1-10]: " num
 
     case "${num}" in
-      1)  update_shell_y
+      1)  
+          update_shell_y
           before_show_menu
     ;;
-      2)  update_clash_y
+      2)  
+          update_clash_y
           before_show_menu
     ;;   
-      3)  update_clashmeta_y
+      3)  
+          update_clashmeta_y
           before_show_menu
     ;;                
-      4)  update_mosdns_y
+      4)  
+          update_mosdns_y
           before_show_menu
     ;;
-      5)  update_subconverter_y
+      5)  
+          update_subconverter_y
           before_show_menu
     ;;
-      6)  update_adguardhome_y
+      6)  
+          update_adguardhome_y
           before_show_menu
     ;;
-      7)  download_mosdns_config
-          download_easymosdns_config
-          restart_mosdns
-          download_adguardhome_config
-          restart_adguardhome
+      7)  
+          read -e -p "是否更新Mosdns配置文件？(1/0) > " res
+          [ "$res" = 1 ] && download_mosdns_config && restart_mosdns
+          read -e -p "是否更新EasyMosdns配置文件？(1/0) > " res
+          [ "$res" = 1 ] && download_easymosdns_config && restart_mosdns
+          read -e -p "是否更新AdGuardHome配置文件？(1/0) > " res
+          [ "$res" = 1 ] && download_adguardhome_config && restart_adguardhome
           before_show_menu
     ;;
-      8)  download_clash_dashboard
+      8)  
+          download_clash_dashboard
           download_clash_yacd
           download_clashmeta_dashboard
           download_clashmeta_yacd
           before_show_menu
     ;;
-      9)  download_clash_Country
+      9)  
+          download_clash_Country
           download_geoip
           download_geosite
           download_direct_list
@@ -2934,11 +2948,14 @@ EOF
           download_cn_ip
           before_show_menu
     ;;
-      10)  uninstall
+      10)  
+          uninstall
     ;;
-      0)  show_menu
+      0)  
+          show_menu
     ;;             
-      *)  errornum
+      *)  
+          errornum
           update_menu
     ;;
     esac
