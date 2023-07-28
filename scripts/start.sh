@@ -2,15 +2,15 @@
 getconfig(){
   #加载配置文件
   clashdir=/srv/clash
-  ccfg=/srv/mark
+  CFG_PATH=/srv/mark
   eth_n=$(ip --oneline link show up | grep -v "lo" | awk '{print$2;exit}' | cut -d':' -f1 | cut -d'@' -f1)
   local_ip=$(ip a 2>&1 | grep -w 'inet' | grep 'global' | grep -E '\ 1(92|0|72|00|1)\.' | sed 's/.*inet.//g' | sed 's/\/[0-9][0-9].*$//g' | head -n 1);
   #检查/读取标识文件
-  [ ! -f $ccfg ] && echo '#标识clash运行状态的文件，不明勿动！' > $ccfg
+  [ ! -f $CFG_PATH ] && echo '#标识clash运行状态的文件，不明勿动！' > $CFG_PATH
   #检查重复行并去除
-  [ -n "$(awk 'a[$0]++' $ccfg)" ] && awk '!a[$0]++' $ccfg > $ccfg
+  [ -n "$(awk 'a[$0]++' $CFG_PATH)" ] && awk '!a[$0]++' $CFG_PATH > $CFG_PATH
   #使用source加载配置文件
-  source $ccfg
+  source $CFG_PATH
   #默认设置
   [ -z "$bindir" ] && bindir=$clashdir
   [ -z "$redir_mod" ] && [ "$USER" = "root" -o "$USER" = "admin" ] && redir_mod=混合模式
@@ -48,7 +48,7 @@ compare(){
 
 setconfig(){
     #参数1代表变量名，参数2代表变量值,参数3即文件路径
-    [ -z "$3" ] && configpath=${ccfg} || configpath=$3
+    [ -z "$3" ] && configpath=${CFG_PATH} || configpath=$3
     [ -n "$(grep ${1} $configpath)" ] && sed -i "s#${1}=.*#${1}=${2}#g" $configpath || echo "${1}=${2}" >> $configpath
 }
 
@@ -462,8 +462,9 @@ case $1 in
 "afstart") 
                   afstart 0
                   ;;
-"modify_yaml") 
-                  modify_yaml 0
+"start") 
+                  getconfig
+                  [ "$disoverride" != "已禁用" ] && modify_yaml 0
                   ;;
 "getyaml") 
                   getyaml 0

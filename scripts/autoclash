@@ -18,7 +18,7 @@ purpleb="\033[1;35m"
 lightblue="\033[0;36m"
 lightblueb="\033[1;36m"
 
-sh_ver="2.3.3"
+sh_ver="2.3.4"
 
 cpu=$(hostnamectl | grep Architecture: | awk '{print $2}')
 system=$(cat /etc/issue | awk '{print $1}')
@@ -31,7 +31,7 @@ eth_n=$(ip --oneline link show up | grep -v "lo" | awk '{print$2;exit}' | cut -d
 auto_dir="/srv"
 autobin_dir="/usr/local/bin"
 sps_dir="/lib/clash"
-ccfg="$auto_dir/mark"
+CFG_PATH="$auto_dir/mark"
 
 ######### clash #########
 bindir="${auto_dir}/clash" 
@@ -69,7 +69,7 @@ adguardhome_version_file="${adg_dir}/version_adguardhome"
 
 setconfig(){
     #参数1代表变量名，参数2代表变量值,参数3即文件路径
-    [ -z "$3" ] && configpath=${ccfg} || configpath=$3
+    [ -z "$3" ] && configpath=${CFG_PATH} || configpath=$3
     [ -n "$(grep ${1} $configpath)" ] && sed -i "s#${1}=.*#${1}=${2}#g" $configpath || echo "${1}=${2}" >> $configpath
 }
 
@@ -504,7 +504,7 @@ install_clash() {
 }
 
 download_clash_dashboard () {
-    source $ccfg
+    source $CFG_PATH
     if [ ! -d "${clashdir}/ui" ]; then
       mkdir ${clashdir}/ui
     fi 
@@ -1670,7 +1670,7 @@ check_ver() {
 }
 
 check_clash_port() {
-    source $ccfg
+    source $CFG_PATH
     pIDa=`lsof -i :${db_port}|grep -v "PID" | awk '{print $2}'`
     if [ "$pIDa" = "" ];then
       return 1
@@ -1706,9 +1706,9 @@ ping_service() {
     fi
 }
 
-check_ccfg() {
-  if [ ! -f "$ccfg" ]; then
-cat << EOF > $ccfg
+check_CFG_PATH() {
+  if [ ! -f "$CFG_PATH" ]; then
+cat << EOF > $CFG_PATH
 #标识clash运行状态的文件，不明勿动！
 # update_git:下载更新库
 update_git=AutoClash库下载-Gitea
@@ -1726,22 +1726,30 @@ db_port=9090
 secret=''
 # dns_port:clash到DNS服务器监听端口
 dns_port=5352
-# skip_cert:跳过本地证书验证
+# skip_cert:跳过本地证书验证	[已开启,未启用]
 skip_cert=已开启
-# sniffer:嗅探域名
+# sniffer:嗅探域名	[已开启,未启用]
 sniffer=已开启
-# raw_cdn:配置文件https://raw前添加代理
+# raw_cdn:配置文件https://raw前添加代理	[已开启,未启用]
 raw_cdn=已开启
 # url_cdn:代理地址
 url_cdn=''
-# clashcore:clash核心[clashpre,clashmeta]
-clashcore=clashpre
-# redir_mod:clash运行模式[混合模式,Redir模式,Tun模式,TProxy模式]
+# clashcore:clash核心	[clashpre,clashmeta]
+clashcore=clashmeta
+# redir_mod:clash运行模式		[混合模式,Redir模式,Tun模式,TProxy模式]
 redir_mod=混合模式
-# dns_mod:clash的DNS模式[fake-ip,redir_host]
+# dns_mod:clash的DNS模式		[fake-ip,redir_host]
 dns_mod=fake-ip
 # mix_port:HTTP(S) 和 SOCKS 代理混合端口
 mix_port=7891
+# Mosdns版本	[MosdnsV5,EasyMosdns]
+mosdns_ver=MosdnsV5
+# 配置文件覆写	[未禁用,已禁用]
+disoverride=未禁用
+# 基础DNS,多个DNS地址请用“|”或者“, ”分隔输入
+dns_nameserver='114.114.114.114, 223.5.5.5'
+# Fallback_DNS,多个DNS地址请用“|”或者“, ”分隔输入
+dns_fallback='1.0.0.1, 8.8.4.4'
 EOF
   fi
 }
@@ -1757,19 +1765,19 @@ config_url_cdn(){
   echo -----------------------------------------------
   read -e -p "请输入对应数字 > " num
   if [ "$num" = 1 ];then
-    # sed -i '/url_cdn = */'d $ccfg
+    # sed -i '/url_cdn = */'d $CFG_PATH
     setconfig url_cdn \'https://ghproxy.com/\'
   elif [ "$num" = 2 ];then
-    # sed -i '/url_cdn = */'d $ccfg
+    # sed -i '/url_cdn = */'d $CFG_PATH
     setconfig url_cdn \'https://gh.168828.xyz/\'
   elif [ "$num" = 3 ];then
-    # sed -i '/url_cdn = */'d $ccfg
+    # sed -i '/url_cdn = */'d $CFG_PATH
     setconfig url_cdn \'https://pro.feverrun.xyz\'
   elif [ "$num" = 4 ];then
-    # sed -i '/url_cdn = */'d $ccfg
+    # sed -i '/url_cdn = */'d $CFG_PATH
     setconfig url_cdn \'http://gh.smiek.tk:8080/\'
   elif [ "$num" = 5 ];then
-    # sed -i '/url_cdn = */'d $ccfg
+    # sed -i '/url_cdn = */'d $CFG_PATH
     setconfig url_cdn \'\'
   else
     errornum
@@ -1785,17 +1793,17 @@ config_update_git(){
   echo -----------------------------------------------
   read -e -p "请输入对应数字 > " num
   if [ "$num" = 1 ];then
-    # sed -i '/url_cdn = */'d $ccfg
+    # sed -i '/url_cdn = */'d $CFG_PATH
     setconfig update_git AutoClash库下载-Gitea
     setconfig update_url "https://git.168828.xyz/root/AutoClash/raw/branch/main"
     setconfig url_cdn \'\'
   elif [ "$num" = 2 ];then
-    # sed -i '/url_cdn = */'d $ccfg
+    # sed -i '/url_cdn = */'d $CFG_PATH
     setconfig update_git JSdelivr-CF源
     setconfig update_url "https://testingcf.jsdelivr.net/gh/gdfsnhsw/Autoclash@master"
     setconfig url_cdn \'\'
   elif [ "$num" = 3 ];then
-    # sed -i '/url_cdn = */'d $ccfg
+    # sed -i '/url_cdn = */'d $CFG_PATH
     setconfig update_git 原作者GitHub
     setconfig update_url \'\'
     config_url_cdn
@@ -1842,11 +1850,11 @@ install() {
     echo -----------------------------------------------    
     echo -e "${green}欢迎安装AutoClash${end}"
     check_disk_status
-    check_ccfg
+    check_CFG_PATH
     read -e -p "是否更改本机IP？(1/0) > " res
     [ "$res" = 1 ] && config_ip_dns
     config_update_git
-    source $ccfg
+    source $CFG_PATH
     config_base
     # update_shell
     install_debian
@@ -1920,7 +1928,7 @@ checkrestart(){
 
 restart_clash() {
     echo -----------------------------------------------
-    source ${sps_dir}/start.sh modify_yaml
+    source ${sps_dir}/start.sh start
     sleep 2
     systemctl restart clash.service >> /dev/null 2>&1
     sleep 1
@@ -2081,7 +2089,7 @@ linkconfig(){
   read -e -p "请输入对应数字 > " num
   if [ "$num" = 1 ];then
     webget2 /tmp/clash_config_$USER.yaml ${url_cdn}"${update_url}/file/config-meta.yaml"
-    # sed -i '/clashcore=*/'d $ccfg
+    # sed -i '/clashcore=*/'d $CFG_PATH
     setconfig clashcore clashmeta
     rm -rf $bindir/clash
     cp -r ${clashmeta_bin} ${bindir}/clash
@@ -2152,7 +2160,7 @@ getlink(){
           mkyamlbak
           sed -i '/url=*/'d $formyairport_path
           setconfig2 url $link
-          # sed -i '/Url=*/'d $ccfg
+          # sed -i '/Url=*/'d $CFG_PATH
           # setconfig Url \'$link\'
           getudp
           echo -----------------------------------------------
@@ -2183,7 +2191,7 @@ EOF
 keepyaml(){
     if [ -s $yamlnew  ];then
       cp -r $yamlnew $yaml
-      source ${sps_dir}/start.sh modify_yaml
+      source ${sps_dir}/start.sh start
       echo -e "${green}已成功获取配置文件!${end}"
       rm -rf $yamlnew
       systemctl daemon-reload >> /dev/null 2>&1
@@ -2423,7 +2431,7 @@ subconverter_getconfig(){
 }
 
 adguardhome_getconfig(){
-    source $ccfg
+    source $CFG_PATH
     PID=$(pidof AdGuardHome)
     if [ -n "$PID" ];then
       run="${green}已运行${end}"
@@ -2442,12 +2450,12 @@ adguardhome_getconfig(){
 
 getconfig2(){
     getcpucore
-    source $ccfg
+    source $CFG_PATH
     [ -z "$redir_mod" ] && redir_mod=混合模式
     echo -----------------------------------------------
     echo -e "\033[30;46m         欢迎使用AutoClash          版本:${sh_ver}${end}"
     check_disk_status
-    check_ccfg
+    check_CFG_PATH
     clash_getconfig
     mosdns_getconfig
     subconverter_getconfig
@@ -2459,7 +2467,7 @@ getconfig2(){
 
 show_menu() {
     getconfig2
-    source $ccfg
+    source $CFG_PATH
     echo -e "1. ${green}重启 ${end}Clash"
     echo -e "2. ${green}重启 ${end}Mosdns"
     echo -e "3. ${green}重启 ${end}Subconverter"
@@ -2496,9 +2504,9 @@ show_menu() {
     elif [ "$num" = 5 ]; then
       getlink_menu
     elif [ "$num" = 6 ]; then
-      checkcfg=$(cat $ccfg)
+      checkcfg=$(cat $CFG_PATH)
       clashcfg
-      checkcfg_new=$(cat $ccfg)
+      checkcfg_new=$(cat $CFG_PATH)
       [ "$checkcfg" != "$checkcfg_new" ] && checkrestart
       show_menu
     elif [ "$num" = 7 ]; then
@@ -2514,7 +2522,8 @@ show_menu() {
 }
 
 clashcfg() {
-    source $ccfg
+    source $CFG_PATH
+
     if [ "$clashcore" = clashpre ];then
       showcore=Clash.Premium
     elif [ "$clashcore" = clashmeta ];then
@@ -2524,19 +2533,23 @@ clashcfg() {
     fi
     echo -----------------------------------------------
     echo -e "\033[30;43m欢迎使用Clash功能设置菜单${end}"
-    echo -e "${yellowb}更多功能请修改$auto_dir/mark文件${end}"
+    echo -----------------------------------------------
+    echo -e "${purpleb}更多功能请修改$auto_dir/mark文件${end}"
     echo -----------------------------------------------
     echo -e "1. ${green}切换 ${end}Clash核心:         ${lightblue}$showcore${end}"
     echo -e "2. ${green}切换 ${end}Clash运行模式:     ${lightblue}$redir_mod${end}"
     echo -e "3. ${green}切换 ${end}DNS运行模式:       ${lightblue}$dns_mod${end}"
-    echo -e "4. ${green}启用 ${end}域名嗅探:          ${lightblue}$sniffer${end}"
-    echo -e "5. ${green}修改 ${end}Http/Sock5端口:    ${lightblue}$mix_port${end}"
-    echo -e "6. ${green}管理 ${end}Fake-ip过滤列表"
-    echo -e "7. ${green}日志 ${end}Clash"
+    echo -e "4. ${green}启用 ${end}跳过本地证书验证:  ${lightblue}$skip_cert${end}"    
+    echo -e "5. ${green}启用 ${end}域名嗅探:          ${lightblue}$sniffer${end}"
+    echo -e "6. ${green}修改 ${end}Http/Sock5端口:    ${lightblue}$mix_port${end}"
+    echo -e "7. ${green}管理 ${end}Fake-ip过滤列表"
+    echo -e "8. ${green}重置 ${end}配置文件覆写"
+    echo -e "9. ${green}日志 ${end}Clash"
     echo -----------------------------------------------
+    echo -e "99. ${red}禁用 ${end}配置文件覆写       ${lightblue}$disoverride${end}"
     echo -e "0. 返回上级菜单"
     echo -----------------------------------------------
-    echo && read -e -p "请输入选择 [1-7]: " num
+    echo && read -e -p "请输入选择 [1-9]: " num
     case "${num}" in
       1)  set_clash_core
     ;;
@@ -2544,13 +2557,22 @@ clashcfg() {
     ;;
       3)  set_dns_mod
     ;;
-      4)  set_sniffer
+      4)  set_skip_cert
+    ;;    
+      5)  set_sniffer
     ;;
-      5)  set_mix_port
+      6)  set_mix_port
     ;;
-      6)  fake_ip_filter
+      7)  fake_ip_filter
+          clashcfg
     ;;
-      7)  journalctl -u clash.service -f  
+      8)  
+          rm -rf $CFG_PATH
+          check_CFG_PATH
+    ;;
+      99)  
+          set_disoverride
+          clashcfg
     ;;
       0)  i=
     ;;
@@ -2559,6 +2581,26 @@ clashcfg() {
     ;;
     esac
 }
+
+set_disoverride(){
+    source $CFG_PATH
+    [ -z "$disoverride" ] && disoverride=未禁用
+    if [ "$disoverride" = "未禁用" ];then
+      echo -----------------------------------------------
+      echo -e "\033[33m此功能可能会导致严重问题！启用后脚本中大部分功能都将禁用！！！\033[0m"
+      echo -e "如果你不是非常了解Clash的运行机制，切勿开启！\033[0m"
+      echo -e "\033[33m继续后如出现任何问题，请务必自行解决，一切提问恕不受理！\033[0m"
+      echo -----------------------------------------------
+      sleep 2
+      read -p "我确认遇到问题可以自行解决[1/0] > " res
+      [ "$res" = '1' ] && disoverride=已禁用
+    else
+      disoverride=未禁用
+    fi
+    setconfig disoverride $disoverride
+    echo -e "\033[32m设置成功！\033[0m"
+}
+
 
 fake_ip_filter(){
     echo -e "\033[32m用于解决Fake-ip模式下部分地址或应用无法连接的问题\033[0m"
@@ -2615,7 +2657,7 @@ getlink_menu() {
 }
 
 set_mix_port(){
-    source $ccfg
+    source $CFG_PATH
     [ -z "$secret" ] && secret=未设置
     [ -z "$authentication" ] && authentication=未设置
     inputport(){
@@ -2642,7 +2684,7 @@ set_mix_port(){
 }
 
 set_sniffer() {
-    source $ccfg
+    source $CFG_PATH
     echo -----------------------------------------------
     if [ "$sniffer" = "未启用" ];then
       sniffer=已开启
@@ -2650,6 +2692,21 @@ set_sniffer() {
       sniffer=未启用
     fi
     setconfig sniffer $sniffer
+    echo -e "\033[32m设置成功！\033[0m"
+    clashcfg
+}
+
+set_skip_cert() {
+    source $CFG_PATH
+    echo -----------------------------------------------
+    if [ "$skip_cert" = "未启用" ];then
+      skip_cert=已开启
+      setconfig2 scv true
+    else
+      skip_cert=未启用
+      setconfig2 scv false
+    fi
+    setconfig skip_cert $skip_cert
     echo -e "\033[32m设置成功！\033[0m"
     clashcfg
 }
@@ -2680,13 +2737,13 @@ set_clash_core() {
     echo -----------------------------------------------
     read -e -p "请输入对应数字 > " num
     if [ "$num" = 1 ];then
-      # sed -i '/clashcore=*/'d $ccfg
+      # sed -i '/clashcore=*/'d $CFG_PATH
       setconfig clashcore clashpre
       rm -rf $bindir/clash
       cp -r ${clashpre_bin} ${bindir}/clash
       clashcfg
     elif [ "$num" = 2 ];then
-      # sed -i '/clashcore=*/'d $ccfg
+      # sed -i '/clashcore=*/'d $CFG_PATH
       setconfig clashcore clashmeta
       rm -rf $bindir/clash
       cp -r ${clashmeta_bin} ${bindir}/clash
@@ -2738,11 +2795,11 @@ set_dns_mod() {
     echo -----------------------------------------------
     read -e -p "请输入对应数字 > " num
     if [ "$num" = 1 ];then
-      sed -i '/dns_mod=*/'d $ccfg
+      sed -i '/dns_mod=*/'d $CFG_PATH
       setconfig dns_mod fake-ip
       clashcfg
     elif [ "$num" = 2 ];then
-      sed -i '/dns_mod=*/'d $ccfg
+      sed -i '/dns_mod=*/'d $CFG_PATH
       setconfig dns_mod redir_host
       clashcfg
     elif [ "$num" = 0 ];then
@@ -2781,7 +2838,7 @@ set_adg_home() {
 
 setup_menu() {
     getipv4
-    source $ccfg
+    source $CFG_PATH
     echo -----------------------------------------------
     echo -e "\033[30;43m欢迎使用AutoClash功能设置菜单${end}"
     echo -----------------------------------------------
@@ -2800,7 +2857,7 @@ setup_menu() {
     echo -----------------------------------------------
     echo -e "0. 返回上级菜单"
     echo -----------------------------------------------
-    echo && read -e -p "请输入选择 [1-3]: " num
+    echo && read -e -p "请输入选择 [1-4]: " num
     case "${num}" in
       1)  set_dns_server
           setup_menu
@@ -2834,7 +2891,7 @@ set_dns_server() {
     echo -----------------------------------------------
     read -e -p "请输入对应数字 > " num
     if [ "$num" = 1 ];then
-      sed -i '/mosdns_ver=*/'d $ccfg
+      sed -i '/mosdns_ver=*/'d $CFG_PATH
       setconfig mosdns_ver MosdnsV5
       systemctl stop mosdns.service >> /dev/null 2>&1
       set_mosdns_service
@@ -2845,7 +2902,7 @@ set_dns_server() {
         echo -e "${green}正在安装EasyMosdns...${end}"
         install_easymosdns
       fi 
-      sed -i '/mosdns_ver=*/'d $ccfg
+      sed -i '/mosdns_ver=*/'d $CFG_PATH
       setconfig mosdns_ver EasyMosdns
       systemctl stop mosdns.service >> /dev/null 2>&1
       set_easymosdns_service
@@ -2999,7 +3056,7 @@ uninstall() {
     rm -rf ${auto_dir}/version
     rm -rf ${autobin_dir}/autoclash
 
-    rm -rf $ccfg
+    rm -rf $CFG_PATH
 
     cronset "Clash服务"
     cronset "订阅链接"
