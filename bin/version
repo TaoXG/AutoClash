@@ -1,7 +1,7 @@
 version=2.3.4
 clashpre_v=2023.07.22
 clashmeta_v=v1.15.0
-mosdns_v=v5.1.3
 GeoIP_v=20230725
 adguardhome_v=v0.107.34
 subconverter_v=Alpha
+mosdns_v=v5.1.3
