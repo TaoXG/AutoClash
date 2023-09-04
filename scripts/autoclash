@@ -702,6 +702,7 @@ install_clashmeta () {
 
     download_clashmeta_dashboard
     download_clashmeta_yacd
+    download_clashmeta_metacubexd
     download_geoip
     download_geosite 
 
@@ -842,6 +843,29 @@ download_clashmeta_dashboard () {
     [ -d "${bindir}/ui/dashboard-meta" ] && rm -rf "${bindir}/ui/dashboard-meta"
     mv -f -T /tmp/Razord-meta-gh-pages ${bindir}/ui/dashboard-meta
     rm -rf /tmp/dashboard-meta.zip
+}
+
+download_clashmeta_metacubexd () {
+    if [ ! -d "${bindir}/ui" ]; then
+      mkdir ${bindir}/ui
+    fi 
+
+    if [ "$update_git" != "原作者GitHub" ];then
+      clashmeta_metacubexd_download_url="${update_url}/bin/dashboard/metacubexd.zip"
+    else
+      clashmeta_metacubexd_download_url="https://github.com/MetaCubeX/metacubexd/archive/gh-pages.zip"
+    fi
+    echo -e "${green}Start download ClashMeta Metacubexd from ${clashmeta_metacubexd_download_url}${end}" 
+    webget2  /tmp/metacubexd.zip  ${url_cdn}${clashmeta_metacubexd_download_url}
+    if [ ! -f "/tmp/metacubexd.zip" ]; then
+      echo -e "${red}Failed to download Metacubexd.${end}"
+      exit 1
+    fi
+    cd /tmp
+    unzip metacubexd.zip >> /dev/null 2>&1
+    [ -d "${bindir}/ui/metacubexd" ] && rm -rf "${bindir}/ui/metacubexd"
+    mv -f -T /tmp/metacubexd-gh-pages ${bindir}/ui/metacubexd
+    rm -rf /tmp/metacubexd.zip
 }
 
 download_geoip () {
@@ -2992,6 +3016,7 @@ EOF
           download_clash_yacd
           download_clashmeta_dashboard
           download_clashmeta_yacd
+          download_clashmeta_metacubexd
           before_show_menu
     ;;
       9)  
